@@ -6,6 +6,7 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D19BB1B7-14A1-4B1C-BFE9-5919D4B9D39B}"
 	ProjectSection(SolutionItems) = preProject
 		AGENTS.md = AGENTS.md
+		CHANGELOG.md = CHANGELOG.md
 		Publish.cmd = Publish.cmd
 		README.md = README.md
 		scripts\Publish.ps1 = scripts\Publish.ps1
