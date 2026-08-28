@@ -1,0 +1,65 @@
+<Window x:Class="MyMediaImport.App.PathTemplateHelpWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Target path template help" Width="560" SizeToContent="Height" MaxHeight="640"
+        MinWidth="440" ResizeMode="CanResize" WindowStartupLocation="CenterOwner"
+        WindowStyle="ToolWindow" ShowInTaskbar="False"
+        Background="{DynamicResource PanelBackgroundBrush}"
+        Foreground="{DynamicResource ForegroundBrush}" PreviewKeyDown="Window_OnPreviewKeyDown">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock Text="Available placeholders"
+                   Style="{StaticResource SectionTitleStyle}"
+                   Margin="0,0,0,12" />
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="Transparent"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="0,0,0,1"
+                                Padding="8,10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Syntax}" FontFamily="Consolas" FontWeight="Medium" />
+                                    <TextBlock Text="{Binding Description}" Margin="0,3,0,0" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding Example, StringFormat=Example: {0}}"
+                                               Margin="0,3,0,0" FontFamily="Consolas">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource MutedTextStyle}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Example}" Value="{x:Null}">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                                <Button Grid.Column="1" Content="_Copy" Tag="{Binding Syntax}"
+                                        Margin="12,0,0,0" Padding="8,4" VerticalAlignment="Top"
+                                        AutomationProperties.Name="{Binding Syntax, StringFormat=Copy {0}}"
+                                        Click="CopyButton_OnClick" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+        <Grid Grid.Row="2" Margin="0,5,0,0">
+            <TextBlock x:Name="CopyStatusText" Text="Copied"
+                       Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center"
+                       Visibility="Collapsed" AutomationProperties.LiveSetting="Polite" />
+            <Button Content="_Close" HorizontalAlignment="Right" IsCancel="True"
+                    Click="CloseButton_OnClick" />
+        </Grid>
+    </Grid>
+</Window>
