@@ -39,6 +39,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private bool _isTargetPathDetailsVisible;
     private bool _isImporting;
     private bool _isImportSuccessful;
+    private bool _isImportCancelled;
     private bool _settingsValid;
     private bool _suppressSelectionUpdates;
     private int _targetPlanErrorCount;
@@ -392,6 +393,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     {
         get => _isImportSuccessful;
         private set => SetField(ref _isImportSuccessful, value);
+    }
+
+    public bool IsImportCancelled
+    {
+        get => _isImportCancelled;
+        private set => SetField(ref _isImportCancelled, value);
     }
 
     public string ImportStatus
@@ -805,18 +812,22 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             bool wasCancelled = result.Results.Any(
                 item => item.Status == ImportResultStatus.Cancelled);
             IsImportSuccessful = !wasCancelled && ImportFailedCount == 0;
-            ImportStatus = wasCancelled
-                ? "Import cancelled. Completed files were kept; no partial file was published."
-                : ImportFailedCount > 0
+            if (wasCancelled)
+            {
+                ApplyCancelledImportState(result.Results);
+            }
+            else
+            {
+                ImportStatus = ImportFailedCount > 0
                     ? "Import completed with errors. Other files were processed where possible."
                     : "Import completed successfully.";
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             if (ReferenceEquals(_importCancellation, request))
             {
-                ImportStatus =
-                    "Import cancelled. Completed files were kept; no partial file was published.";
+                ApplyCancelledImportState([]);
             }
         }
         catch (Exception exception)
@@ -879,8 +890,13 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             : null;
         ImportTransferredBytes = 0;
         IsImportSuccessful = false;
+        IsImportCancelled = false;
         ImportByteProgress = FormatByteProgress(0, _importExpectedBytes);
-        ImportByteProgressLayoutText = ImportByteProgress;
+        const string cancelledProgressLayoutText = "999.9 TB transferred";
+        ImportByteProgressLayoutText = ImportByteProgress.Length >=
+            cancelledProgressLayoutText.Length
+                ? ImportByteProgress
+                : cancelledProgressLayoutText;
         ImportFileProgress = importPlan.Items.Count == 0
             ? string.Empty
             : $"File 1 of {importPlan.Items.Count}: {importPlan.Items[0].MediaItem.Name}";
@@ -952,6 +968,28 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
 
         ImportFileProgress = $"{results.Count} of {importPlan.Items.Count} files processed.";
+    }
+
+    private void ApplyCancelledImportState(IReadOnlyList<ImportResult> results)
+    {
+        IsImportSuccessful = false;
+        IsImportCancelled = true;
+        int completedFileCount = results.Count(
+            result => result.Status != ImportResultStatus.Cancelled);
+        ImportResult? cancelledResult = results.FirstOrDefault(
+            result => result.Status == ImportResultStatus.Cancelled);
+        double partialFileProgress = cancelledResult?.ExpectedSize is > 0
+            ? Math.Min(
+                1,
+                (double)cancelledResult.TransferredBytes /
+                cancelledResult.ExpectedSize.Value)
+            : 0;
+        ImportProgressValue = completedFileCount + partialFileProgress;
+        ImportStatus = "Import cancelled";
+        ImportFileProgress =
+            $"{completedFileCount} of {ImportTotalCount} files completed. " +
+            "Completed files were kept; the partial transfer was discarded.";
+        ImportByteProgress = $"{FormatByteSize(ImportTransferredBytes)} transferred";
     }
 
     private void DeselectProcessedItems(IReadOnlyList<ImportResult> results)
@@ -1376,6 +1414,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     {
         ImportStatus = string.Empty;
         IsImportSuccessful = false;
+        IsImportCancelled = false;
     }
 
     private void RaisePreviewCommandStateChanged()

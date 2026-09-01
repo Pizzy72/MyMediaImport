@@ -26,6 +26,8 @@
     <Color x:Key="MediaBadgeForegroundColor">#FFFFFFFF</Color>
     <Color x:Key="SuccessColor">#FF63C995</Color>
     <Color x:Key="SuccessBackgroundColor">#FF233A2F</Color>
+    <Color x:Key="WarningColor">#FFF0B44D</Color>
+    <Color x:Key="WarningBackgroundColor">#FF3A3020</Color>
 
     <SolidColorBrush x:Key="WindowBackgroundBrush" Color="{DynamicResource WindowBackgroundColor}" />
     <SolidColorBrush x:Key="PanelBackgroundBrush" Color="{DynamicResource PanelBackgroundColor}" />
@@ -53,6 +55,8 @@
     <SolidColorBrush x:Key="MediaBadgeForegroundBrush" Color="{DynamicResource MediaBadgeForegroundColor}" />
     <SolidColorBrush x:Key="SuccessBrush" Color="{DynamicResource SuccessColor}" />
     <SolidColorBrush x:Key="SuccessBackgroundBrush" Color="{DynamicResource SuccessBackgroundColor}" />
+    <SolidColorBrush x:Key="WarningBrush" Color="{DynamicResource WarningColor}" />
+    <SolidColorBrush x:Key="WarningBackgroundBrush" Color="{DynamicResource WarningBackgroundColor}" />
 
     <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="{DynamicResource ControlBackgroundColor}" />
     <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="{DynamicResource ForegroundColor}" />
