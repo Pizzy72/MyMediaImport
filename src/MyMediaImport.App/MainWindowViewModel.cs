@@ -40,6 +40,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private bool _isImporting;
     private bool _isImportSuccessful;
     private bool _isImportCancelled;
+    private bool _isImportFailed;
     private bool _settingsValid;
     private bool _suppressSelectionUpdates;
     private int _targetPlanErrorCount;
@@ -399,6 +400,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     {
         get => _isImportCancelled;
         private set => SetField(ref _isImportCancelled, value);
+    }
+
+    public bool IsImportFailed
+    {
+        get => _isImportFailed;
+        private set => SetField(ref _isImportFailed, value);
     }
 
     public string ImportStatus
@@ -818,6 +825,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             }
             else
             {
+                IsImportFailed = ImportFailedCount > 0;
                 ImportStatus = ImportFailedCount > 0
                     ? "Import completed with errors. Other files were processed where possible."
                     : "Import completed successfully.";
@@ -836,6 +844,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             {
                 int remainingCount = Math.Max(1, ImportTotalCount - ImportCompletedCount);
                 ImportFailedCount = checked(ImportFailedCount + remainingCount);
+                IsImportSuccessful = false;
+                IsImportCancelled = false;
+                IsImportFailed = true;
                 ImportStatus = $"Import stopped unexpectedly: {exception.Message}";
             }
         }
@@ -891,6 +902,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         ImportTransferredBytes = 0;
         IsImportSuccessful = false;
         IsImportCancelled = false;
+        IsImportFailed = false;
         ImportByteProgress = FormatByteProgress(0, _importExpectedBytes);
         const string cancelledProgressLayoutText = "999.9 TB transferred";
         ImportByteProgressLayoutText = ImportByteProgress.Length >=
@@ -974,6 +986,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     {
         IsImportSuccessful = false;
         IsImportCancelled = true;
+        IsImportFailed = false;
         int completedFileCount = results.Count(
             result => result.Status != ImportResultStatus.Cancelled);
         ImportResult? cancelledResult = results.FirstOrDefault(
@@ -1415,6 +1428,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         ImportStatus = string.Empty;
         IsImportSuccessful = false;
         IsImportCancelled = false;
+        IsImportFailed = false;
     }
 
     private void RaisePreviewCommandStateChanged()

@@ -28,6 +28,8 @@
     <Color x:Key="SuccessBackgroundColor">#FFE8F5EE</Color>
     <Color x:Key="WarningColor">#FF9A6700</Color>
     <Color x:Key="WarningBackgroundColor">#FFFFF4CE</Color>
+    <Color x:Key="ErrorColor">#FFC42B1C</Color>
+    <Color x:Key="ErrorBackgroundColor">#FFFDE7E9</Color>
 
     <SolidColorBrush x:Key="WindowBackgroundBrush" Color="{DynamicResource WindowBackgroundColor}" />
     <SolidColorBrush x:Key="PanelBackgroundBrush" Color="{DynamicResource PanelBackgroundColor}" />
@@ -57,6 +59,8 @@
     <SolidColorBrush x:Key="SuccessBackgroundBrush" Color="{DynamicResource SuccessBackgroundColor}" />
     <SolidColorBrush x:Key="WarningBrush" Color="{DynamicResource WarningColor}" />
     <SolidColorBrush x:Key="WarningBackgroundBrush" Color="{DynamicResource WarningBackgroundColor}" />
+    <SolidColorBrush x:Key="ErrorBrush" Color="{DynamicResource ErrorColor}" />
+    <SolidColorBrush x:Key="ErrorBackgroundBrush" Color="{DynamicResource ErrorBackgroundColor}" />
 
     <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="{DynamicResource ControlBackgroundColor}" />
     <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="{DynamicResource ForegroundColor}" />
