@@ -48,6 +48,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private string _targetPathStatus = "Select media to calculate target paths.";
     private string _importStatus = string.Empty;
     private string _importFileProgress = string.Empty;
+    private string _importByteProgress = string.Empty;
     private int _importCompletedCount;
     private int _importTotalCount;
     private int _importedCount;
@@ -409,6 +410,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     {
         get => _importFileProgress;
         private set => SetField(ref _importFileProgress, value);
+    }
+
+    public string ImportByteProgress
+    {
+        get => _importByteProgress;
+        private set => SetField(ref _importByteProgress, value);
     }
 
     public int ImportCompletedCount
@@ -835,6 +842,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         ImportProgressValue = 0;
         ImportTransferredBytes = 0;
         IsImportSuccessful = false;
+        ImportByteProgress = string.Empty;
         ImportFileProgress = importPlan.Items.Count == 0
             ? string.Empty
             : $"File 1 of {importPlan.Items.Count}: {importPlan.Items[0].MediaItem.Name}";
@@ -859,12 +867,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 ? $"{FormatByteSize(progress.CurrentItemTransferredBytes)} of " +
                   FormatByteSize(progress.CurrentItemExpectedBytes.Value)
                 : FormatByteSize(progress.CurrentItemTransferredBytes);
+            ImportByteProgress = sizeProgress;
             ImportFileProgress =
                 $"File {progress.CompletedCount + 1} of {progress.TotalCount}: " +
-                $"{progress.CurrentItem.Name} ({sizeProgress})";
+                progress.CurrentItem.Name;
             return;
         }
 
+        ImportByteProgress = string.Empty;
         ApplyImportResultToPreview(progress.Result);
         AddImportResultToSummary(progress.Result);
         if (progress.CompletedCount < importPlan.Items.Count)
@@ -892,6 +902,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             item => item.Status == ImportResultStatus.AlreadyImported);
         ImportFailedCount = results.Count(item => item.Status == ImportResultStatus.Failed);
         ImportTransferredBytes = results.Sum(item => item.TransferredBytes);
+        ImportByteProgress = string.Empty;
         foreach (ImportResult result in results)
         {
             ApplyImportResultToPreview(result);
