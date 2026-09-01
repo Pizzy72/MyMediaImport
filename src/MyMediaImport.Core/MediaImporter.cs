@@ -1,8 +1,11 @@
+using System.Diagnostics;
+
 namespace MyMediaImport.Core;
 
 public sealed class MediaImporter
 {
     private const int CopyBufferSize = 128 * 1024;
+    private static readonly TimeSpan ProgressReportInterval = TimeSpan.FromMilliseconds(100);
 
     private readonly IImportFileSystem _fileSystem;
 
@@ -65,6 +68,8 @@ public sealed class MediaImporter
 
         string partialPath = targetPath + ".partial";
         long transferredBytes = 0;
+        long reportedBytes = 0;
+        long lastProgressReportTimestamp = Stopwatch.GetTimestamp();
 
         try
         {
@@ -86,13 +91,28 @@ public sealed class MediaImporter
                     await destination.WriteAsync(
                         buffer.AsMemory(0, bytesRead), cancellationToken);
                     transferredBytes = checked(transferredBytes + bytesRead);
-                    progress?.Report(new MediaImportProgress(
-                        request.MediaItem,
-                        transferredBytes,
-                        request.MediaItem.Size));
+                    if (progress is not null &&
+                        Stopwatch.GetElapsedTime(lastProgressReportTimestamp) >=
+                        ProgressReportInterval)
+                    {
+                        progress.Report(new MediaImportProgress(
+                            request.MediaItem,
+                            transferredBytes,
+                            request.MediaItem.Size));
+                        reportedBytes = transferredBytes;
+                        lastProgressReportTimestamp = Stopwatch.GetTimestamp();
+                    }
                 }
 
                 await destination.FlushAsync(cancellationToken);
+            }
+
+            if (progress is not null && transferredBytes != reportedBytes)
+            {
+                progress.Report(new MediaImportProgress(
+                    request.MediaItem,
+                    transferredBytes,
+                    request.MediaItem.Size));
             }
 
             if (request.MediaItem.Size is { } expectedSize &&

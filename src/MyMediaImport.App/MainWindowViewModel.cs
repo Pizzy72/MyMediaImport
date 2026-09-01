@@ -858,6 +858,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             return;
         }
 
+        if (progress.CompletedCount < ImportCompletedCount ||
+            progress.TransferredBytes < ImportTransferredBytes)
+        {
+            return;
+        }
+
         ImportCompletedCount = progress.CompletedCount;
         ImportTransferredBytes = progress.TransferredBytes;
         ImportProgressValue = CalculateImportProgressValue(progress);
