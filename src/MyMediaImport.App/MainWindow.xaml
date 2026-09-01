@@ -433,7 +433,7 @@
                                 <Grid Grid.Row="1" Margin="0,6,0,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="170" />
+                                        <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="160" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="{Binding ImportFileProgress}"
@@ -442,10 +442,16 @@
                                                ToolTip="{Binding ImportFileProgress}"
                                                AutomationProperties.AutomationId="ImportFileProgress" />
                                     <TextBlock Grid.Column="1"
+                                               Text="{Binding ImportByteProgressLayoutText, Mode=OneWay}"
+                                               Style="{StaticResource MutedTextStyle}"
+                                               FontFamily="Consolas"
+                                               Visibility="Hidden"
+                                               Margin="12,0,0,0" />
+                                    <TextBlock Grid.Column="1"
                                                Text="{Binding ImportByteProgress, Mode=OneWay}"
                                                Style="{StaticResource MutedTextStyle}"
+                                               FontFamily="Consolas"
                                                TextAlignment="Right"
-                                               Typography.NumeralAlignment="Tabular"
                                                Margin="12,0,0,0"
                                                AutomationProperties.AutomationId="ImportByteProgress" />
                                     <ProgressBar Grid.Column="2"

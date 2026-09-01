@@ -49,6 +49,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private string _importStatus = string.Empty;
     private string _importFileProgress = string.Empty;
     private string _importByteProgress = string.Empty;
+    private string _importByteProgressLayoutText = string.Empty;
     private int _importCompletedCount;
     private int _importTotalCount;
     private int _importedCount;
@@ -418,6 +419,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         private set => SetField(ref _importByteProgress, value);
     }
 
+    public string ImportByteProgressLayoutText
+    {
+        get => _importByteProgressLayoutText;
+        private set => SetField(ref _importByteProgressLayoutText, value);
+    }
+
     public int ImportCompletedCount
     {
         get => _importCompletedCount;
@@ -726,6 +733,34 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         return $"{displaySize.ToString(format, CultureInfo.CurrentCulture)} {units[unitIndex]}";
     }
 
+    public static string FormatByteProgress(long transferredBytes, long? expectedBytes)
+    {
+        if (expectedBytes is not > 0)
+        {
+            return FormatByteSize(transferredBytes);
+        }
+
+        string[] units = ["B", "KB", "MB", "GB", "TB"];
+        double divisor = 1;
+        int unitIndex = 0;
+        while (expectedBytes.Value / divisor >= 1024 && unitIndex < units.Length - 1)
+        {
+            divisor *= 1024;
+            unitIndex++;
+        }
+
+        string format = unitIndex == 0 ? "0" : "0.0";
+        string expectedText = (expectedBytes.Value / divisor).ToString(
+            format,
+            CultureInfo.CurrentCulture);
+        string transferredText = (transferredBytes / divisor).ToString(
+            format,
+            CultureInfo.CurrentCulture);
+        transferredText = transferredText.PadLeft(expectedText.Length);
+        string unit = units[unitIndex];
+        return $"{transferredText} {unit} of {expectedText} {unit}";
+    }
+
     private bool CanLoadPreview() =>
         SelectedDevice is not null && _settingsValid && !IsLoadingPreview && !IsImporting;
 
@@ -843,6 +878,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         ImportTransferredBytes = 0;
         IsImportSuccessful = false;
         ImportByteProgress = string.Empty;
+        ImportByteProgressLayoutText = importPlan.Items
+            .Select(item => FormatByteProgress(0, item.MediaItem.Size))
+            .OrderByDescending(text => text.Length)
+            .FirstOrDefault() ?? string.Empty;
         ImportFileProgress = importPlan.Items.Count == 0
             ? string.Empty
             : $"File 1 of {importPlan.Items.Count}: {importPlan.Items[0].MediaItem.Name}";
@@ -869,11 +908,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         ImportProgressValue = CalculateImportProgressValue(progress);
         if (progress.Result is null)
         {
-            string sizeProgress = progress.CurrentItemExpectedBytes is > 0
-                ? $"{FormatByteSize(progress.CurrentItemTransferredBytes)} of " +
-                  FormatByteSize(progress.CurrentItemExpectedBytes.Value)
-                : FormatByteSize(progress.CurrentItemTransferredBytes);
-            ImportByteProgress = sizeProgress;
+            ImportByteProgress = FormatByteProgress(
+                progress.CurrentItemTransferredBytes,
+                progress.CurrentItemExpectedBytes);
             ImportFileProgress =
                 $"File {progress.CompletedCount + 1} of {progress.TotalCount}: " +
                 progress.CurrentItem.Name;
