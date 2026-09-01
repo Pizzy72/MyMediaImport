@@ -458,6 +458,11 @@ static void WriteImportPreview(
 
 static void WriteImportProgress(BatchImportProgress progress)
 {
+    if (progress.Result is null)
+    {
+        return;
+    }
+
     string label = progress.Result.Status switch
     {
         ImportResultStatus.Succeeded => "OK",

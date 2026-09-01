@@ -28,6 +28,30 @@ public sealed class MediaImporterTests
     }
 
     [TestMethod]
+    public async Task ImportAsync_ReportsTransferredBytesWhileCopying()
+    {
+        MemoryImportFileSystem fileSystem = new();
+        TestMediaSource source = new(() => new MemoryStream(SourceBytes));
+        MediaImporter importer = new(fileSystem);
+        List<MediaImportProgress> reportedProgress = [];
+        IProgress<MediaImportProgress> progress =
+            new RecordingProgress<MediaImportProgress>(reportedProgress.Add);
+
+        ImportResult result = await importer.ImportAsync(
+            source,
+            CreateRequest(ExistingFilePolicy.Skip),
+            TestContext.CancellationToken,
+            progress);
+
+        Assert.IsTrue(result.IsSuccess);
+        Assert.IsNotEmpty(reportedProgress);
+        long transferredBytes = SourceBytes.Length;
+        Assert.AreEqual(transferredBytes, reportedProgress.Last().TransferredBytes);
+        long? expectedBytes = SourceBytes.Length;
+        Assert.AreEqual(expectedBytes, reportedProgress.Last().ExpectedBytes);
+    }
+
+    [TestMethod]
     public async Task ImportAsync_SizeMismatch_FailsAndRemovesPartialFile()
     {
         MemoryImportFileSystem fileSystem = new();
@@ -237,6 +261,11 @@ public sealed class MediaImporterTests
             MediaItem mediaItem,
             CancellationToken cancellationToken = default) =>
             ValueTask.FromResult<Stream?>(null);
+    }
+
+    private sealed class RecordingProgress<T>(Action<T> report) : IProgress<T>
+    {
+        public void Report(T value) => report(value);
     }
 
     private sealed class MemoryImportFileSystem(params (string Path, byte[] Content)[] files)

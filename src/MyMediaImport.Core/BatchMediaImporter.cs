@@ -13,6 +13,7 @@ public sealed class BatchMediaImporter(MediaImporter mediaImporter)
         ArgumentNullException.ThrowIfNull(importPlan);
 
         List<ImportResult> results = new(importPlan.Items.Count);
+        long completedTransferredBytes = 0;
         for (int index = 0; index < importPlan.Items.Count; index++)
         {
             ImportPlanItem planItem = importPlan.Items[index];
@@ -55,15 +56,35 @@ public sealed class BatchMediaImporter(MediaImporter mediaImporter)
                 ExistingFilePolicy executionPolicy = existingFilePolicy == ExistingFilePolicy.Overwrite
                     ? ExistingFilePolicy.Overwrite
                     : ExistingFilePolicy.Skip;
+                IProgress<MediaImportProgress>? itemProgress = progress is null
+                    ? null
+                    : new SynchronousProgress<MediaImportProgress>(value =>
+                        progress.Report(new BatchImportProgress(
+                            index,
+                            importPlan.Items.Count,
+                            value.MediaItem,
+                            value.TransferredBytes,
+                            value.ExpectedBytes,
+                            checked(completedTransferredBytes + value.TransferredBytes),
+                            null)));
                 result = await mediaImporter.ImportAsync(
                     mediaSource,
                     new ImportRequest(planItem.MediaItem, planItem.TargetPath, executionPolicy),
-                    cancellationToken);
+                    cancellationToken,
+                    itemProgress);
             }
 
             results.Add(result);
+            completedTransferredBytes = checked(
+                completedTransferredBytes + result.TransferredBytes);
             progress?.Report(new BatchImportProgress(
-                index + 1, importPlan.Items.Count, result));
+                index + 1,
+                importPlan.Items.Count,
+                result.MediaItem,
+                result.TransferredBytes,
+                result.ExpectedSize,
+                completedTransferredBytes,
+                result));
 
             if (result.Status == ImportResultStatus.Cancelled)
             {
@@ -72,5 +93,10 @@ public sealed class BatchMediaImporter(MediaImporter mediaImporter)
         }
 
         return new BatchImportResult(results);
+    }
+
+    private sealed class SynchronousProgress<T>(Action<T> report) : IProgress<T>
+    {
+        public void Report(T value) => report(value);
     }
 }

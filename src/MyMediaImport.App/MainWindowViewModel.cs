@@ -54,6 +54,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private int _skippedCount;
     private int _alreadyImportedCount;
     private int _importFailedCount;
+    private double _importProgressValue;
     private long _importTransferredBytes;
     private IReadOnlyList<MediaPreviewItemViewModel> _previewItems =
         Array.Empty<MediaPreviewItemViewModel>();
@@ -420,6 +421,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     {
         get => _importTotalCount;
         private set => SetField(ref _importTotalCount, value);
+    }
+
+    public double ImportProgressValue
+    {
+        get => _importProgressValue;
+        private set => SetField(ref _importProgressValue, value);
     }
 
     public int ImportedCount
@@ -825,6 +832,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SkippedCount = 0;
         AlreadyImportedCount = 0;
         ImportFailedCount = 0;
+        ImportProgressValue = 0;
         ImportTransferredBytes = 0;
         IsImportSuccessful = false;
         ImportFileProgress = importPlan.Items.Count == 0
@@ -843,6 +851,20 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
 
         ImportCompletedCount = progress.CompletedCount;
+        ImportTransferredBytes = progress.TransferredBytes;
+        ImportProgressValue = CalculateImportProgressValue(progress);
+        if (progress.Result is null)
+        {
+            string sizeProgress = progress.CurrentItemExpectedBytes is > 0
+                ? $"{FormatByteSize(progress.CurrentItemTransferredBytes)} of " +
+                  FormatByteSize(progress.CurrentItemExpectedBytes.Value)
+                : FormatByteSize(progress.CurrentItemTransferredBytes);
+            ImportFileProgress =
+                $"File {progress.CompletedCount + 1} of {progress.TotalCount}: " +
+                $"{progress.CurrentItem.Name} ({sizeProgress})";
+            return;
+        }
+
         ApplyImportResultToPreview(progress.Result);
         AddImportResultToSummary(progress.Result);
         if (progress.CompletedCount < importPlan.Items.Count)
@@ -863,6 +885,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         IReadOnlyList<ImportResult> results)
     {
         ImportCompletedCount = results.Count;
+        ImportProgressValue = results.Count;
         ImportedCount = results.Count(item => item.Status == ImportResultStatus.Succeeded);
         SkippedCount = results.Count(item => item.Status == ImportResultStatus.Skipped);
         AlreadyImportedCount = results.Count(
@@ -928,9 +951,20 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 throw new ArgumentOutOfRangeException(
                     nameof(result), result.Status, "Unknown import result status.");
         }
+    }
 
-        ImportTransferredBytes = checked(
-            ImportTransferredBytes + result.TransferredBytes);
+    private static double CalculateImportProgressValue(BatchImportProgress progress)
+    {
+        if (progress.Result is not null || progress.CurrentItemExpectedBytes is not > 0)
+        {
+            return progress.CompletedCount;
+        }
+
+        double currentFileFraction = Math.Min(
+            1,
+            (double)progress.CurrentItemTransferredBytes /
+            progress.CurrentItemExpectedBytes.Value);
+        return progress.CompletedCount + currentFileFraction;
     }
 
     private void ApplyImportResultToPreview(ImportResult result)

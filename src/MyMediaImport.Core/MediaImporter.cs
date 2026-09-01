@@ -15,7 +15,8 @@ public sealed class MediaImporter
     public async ValueTask<ImportResult> ImportAsync(
         IMediaSource mediaSource,
         ImportRequest request,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IProgress<MediaImportProgress>? progress = null)
     {
         ArgumentNullException.ThrowIfNull(mediaSource);
         ArgumentNullException.ThrowIfNull(request);
@@ -85,6 +86,10 @@ public sealed class MediaImporter
                     await destination.WriteAsync(
                         buffer.AsMemory(0, bytesRead), cancellationToken);
                     transferredBytes = checked(transferredBytes + bytesRead);
+                    progress?.Report(new MediaImportProgress(
+                        request.MediaItem,
+                        transferredBytes,
+                        request.MediaItem.Size));
                 }
 
                 await destination.FlushAsync(cancellationToken);

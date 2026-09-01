@@ -3,4 +3,8 @@ namespace MyMediaImport.Core;
 public sealed record BatchImportProgress(
     int CompletedCount,
     int TotalCount,
-    ImportResult Result);
+    MediaItem CurrentItem,
+    long CurrentItemTransferredBytes,
+    long? CurrentItemExpectedBytes,
+    long TransferredBytes,
+    ImportResult? Result);

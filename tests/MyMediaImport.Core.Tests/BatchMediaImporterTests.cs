@@ -49,8 +49,15 @@ public sealed class BatchMediaImporterTests
             result.Results.Select(item => item.Status).ToArray());
         CollectionAssert.AreEqual(
             new[] { 1, 2, 3 },
-            reportedProgress.Select(item => item.CompletedCount).ToArray());
+            reportedProgress
+                .Where(item => item.Result is not null)
+                .Select(item => item.CompletedCount)
+                .ToArray());
         Assert.IsTrue(reportedProgress.All(item => item.TotalCount == 3));
+        Assert.IsTrue(reportedProgress.Any(item => item.Result is null));
+        Assert.AreEqual(
+            6,
+            reportedProgress.Last().TransferredBytes);
     }
 
     [TestMethod]
