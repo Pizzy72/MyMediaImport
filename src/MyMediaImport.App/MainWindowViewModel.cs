@@ -57,6 +57,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private int _alreadyImportedCount;
     private int _importFailedCount;
     private double _importProgressValue;
+    private long? _importExpectedBytes;
     private long _importTransferredBytes;
     private IReadOnlyList<MediaPreviewItemViewModel> _previewItems =
         Array.Empty<MediaPreviewItemViewModel>();
@@ -470,16 +471,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public long ImportTransferredBytes
     {
         get => _importTransferredBytes;
-        private set
-        {
-            if (SetField(ref _importTransferredBytes, value))
-            {
-                OnPropertyChanged(nameof(ImportTransferredSizeText));
-            }
-        }
+        private set => SetField(ref _importTransferredBytes, value);
     }
-
-    public string ImportTransferredSizeText => FormatByteSize(ImportTransferredBytes);
 
     public bool IsTargetPathDetailsVisible
     {
@@ -875,13 +868,19 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         AlreadyImportedCount = 0;
         ImportFailedCount = 0;
         ImportProgressValue = 0;
+        ImportPlanItem[] transferredItems = importPlan.Items
+            .Where(item => item.Status is
+                ImportPlanStatus.Ready or
+                ImportPlanStatus.Renamed or
+                ImportPlanStatus.WillOverwrite)
+            .ToArray();
+        _importExpectedBytes = transferredItems.All(item => item.MediaItem.Size is not null)
+            ? transferredItems.Sum(item => item.MediaItem.Size!.Value)
+            : null;
         ImportTransferredBytes = 0;
         IsImportSuccessful = false;
-        ImportByteProgress = string.Empty;
-        ImportByteProgressLayoutText = importPlan.Items
-            .Select(item => FormatByteProgress(0, item.MediaItem.Size))
-            .OrderByDescending(text => text.Length)
-            .FirstOrDefault() ?? string.Empty;
+        ImportByteProgress = FormatByteProgress(0, _importExpectedBytes);
+        ImportByteProgressLayoutText = ImportByteProgress;
         ImportFileProgress = importPlan.Items.Count == 0
             ? string.Empty
             : $"File 1 of {importPlan.Items.Count}: {importPlan.Items[0].MediaItem.Name}";
@@ -906,18 +905,17 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         ImportCompletedCount = progress.CompletedCount;
         ImportTransferredBytes = progress.TransferredBytes;
         ImportProgressValue = CalculateImportProgressValue(progress);
+        ImportByteProgress = FormatByteProgress(
+            progress.TransferredBytes,
+            _importExpectedBytes);
         if (progress.Result is null)
         {
-            ImportByteProgress = FormatByteProgress(
-                progress.CurrentItemTransferredBytes,
-                progress.CurrentItemExpectedBytes);
             ImportFileProgress =
                 $"File {progress.CompletedCount + 1} of {progress.TotalCount}: " +
                 progress.CurrentItem.Name;
             return;
         }
 
-        ImportByteProgress = string.Empty;
         ApplyImportResultToPreview(progress.Result);
         AddImportResultToSummary(progress.Result);
         if (progress.CompletedCount < importPlan.Items.Count)
@@ -945,7 +943,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             item => item.Status == ImportResultStatus.AlreadyImported);
         ImportFailedCount = results.Count(item => item.Status == ImportResultStatus.Failed);
         ImportTransferredBytes = results.Sum(item => item.TransferredBytes);
-        ImportByteProgress = string.Empty;
+        ImportByteProgress = FormatByteProgress(
+            ImportTransferredBytes,
+            _importExpectedBytes);
         foreach (ImportResult result in results)
         {
             ApplyImportResultToPreview(result);

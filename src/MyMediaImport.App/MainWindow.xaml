@@ -487,13 +487,9 @@
                                         <Run Text="Already identical: " />
                                         <Run Text="{Binding AlreadyImportedCount, Mode=OneWay}" />
                                     </TextBlock>
-                                    <TextBlock Margin="0,0,14,0">
+                                    <TextBlock>
                                         <Run Text="Failed: " />
                                         <Run Text="{Binding ImportFailedCount, Mode=OneWay}" />
-                                    </TextBlock>
-                                    <TextBlock>
-                                        <Run Text="Transferred: " />
-                                        <Run Text="{Binding ImportTransferredSizeText, Mode=OneWay}" />
                                     </TextBlock>
                                 </WrapPanel>
                             </Grid>
