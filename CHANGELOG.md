@@ -5,6 +5,16 @@ All notable changes to MyMediaImport will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- A lazy-loading source folder picker with per-device remembered selections.
+  Selected folders include their subfolders; missing or ambiguous saved paths
+  stop preview loading rather than silently selecting the whole device.
+- Optional `--source-folder` for CLI `list` and `import`, using the same folder
+  resolution as the desktop application.
+
 ## [1.1.0] - 2026-09-01
 
 ### Added
@@ -51,4 +61,5 @@ and this project uses [Semantic Versioning](https://semver.org/).
 - Self-contained publishing for 64-bit Windows.
 
 [1.1.0]: https://github.com/Pizzy72/MyMediaImport/compare/v1.0.0...v1.1.0
+[Unreleased]: https://github.com/Pizzy72/MyMediaImport/compare/v1.1.0...HEAD
 [1.0.0]: https://github.com/Pizzy72/MyMediaImport/releases/tag/v1.0.0

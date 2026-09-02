@@ -69,6 +69,7 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <ComboBox ItemsSource="{Binding Devices}"
                                       SelectedItem="{Binding SelectedDevice}"
@@ -83,6 +84,19 @@
                                        Text="{Binding DeviceStatus}"
                                        Style="{StaticResource MutedTextStyle}"
                                        Margin="0,6,0,0" />
+                            <DockPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="0,8,0,0">
+                                <Button DockPanel.Dock="Right"
+                                        Content="Choose folder..."
+                                        IsEnabled="{Binding CanChooseSourceFolder}"
+                                        Margin="8,0,0,0"
+                                        Click="ChooseSourceFolder_OnClick"
+                                        AutomationProperties.AutomationId="ChooseSourceFolderButton" />
+                                <TextBlock Text="{Binding SourceFolderText}"
+                                           ToolTip="{Binding SourceFolderText}"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"
+                                           AutomationProperties.AutomationId="SourceFolderPath" />
+                            </DockPanel>
                         </Grid>
                     </GroupBox>
 

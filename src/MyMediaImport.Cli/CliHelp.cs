@@ -31,6 +31,7 @@ public static class CliHelp
           --timezone SPEC      Use local or a fixed +HH:mm/-HH:mm offset.
                                Fixed offsets have no daylight-saving rules.
           --extension LIST     Include comma-separated extensions without dots.
+          --source-folder PATH Limit list/import to a folder and its subfolders.
           --target TEMPLATE    Generate complete destination paths.
           --skip-existing      Skip existing targets (import default).
           --rename-existing    Rename genuine collisions; skip identical files.
@@ -90,7 +91,10 @@ public static class CliHelp
         Syntax (EBNF):
           list-command   = "list", { list-basic-option },
                            [ extension-option ], { list-basic-option } ;
-          list-basic-option = device-option | limit-option | "--show-id" ;
+          list-basic-option = device-option | limit-option | "--show-id"
+                            | "--source-folder", folder-path ;
+          folder-path = ? one argument of non-empty folder names separated by
+                          / or backslash, with no '.' or '..' segments ? ;
           device-option  = "--device-index", positive-integer ;
           limit-option   = "--limit", positive-integer ;
           extension-option = "--extension", extension-list ;
@@ -110,10 +114,16 @@ public static class CliHelp
           --extension LIST     Include only listed extensions, ignoring case.
                                Do not include a leading dot.
           --show-id            Include each WPD media object ID.
+          --source-folder PATH Device-relative path, including the storage name.
+                               Includes subfolders. Default: all folders.
 
         Validation:
           Options may appear in any order. --extension may occur at most once.
           --device-index may occur at most once.
+          --source-folder may occur at most once. Names match exactly.
+          Use / or backslash between names; no leading/trailing separator,
+          empty segment, '.' or '..'. Quote paths containing spaces.
+          A missing or ambiguous folder is an error, not a fallback to all.
           If multiple devices are connected, --device-index is required.
           Repeated --limit options use the last value; repeated --show-id
           options have the same effect as one occurrence.
@@ -121,6 +131,8 @@ public static class CliHelp
         Examples:
           MyMediaImport.Cli.exe list
           MyMediaImport.Cli.exe list --device-index 1 --limit 20
+          MyMediaImport.Cli.exe list --device-index 1 ^
+              --source-folder "Internal Storage/DCIM/Camera"
           MyMediaImport.Cli.exe list --device-index 1 --extension JPG,HEIC
 
         """);
@@ -138,7 +150,10 @@ public static class CliHelp
                          | "--timezone", timezone
                          | "--target", path-template
                          | "--extension", extension-list
+                         | "--source-folder", folder-path
                          | existing-file-option ;
+          folder-path = ? one argument of non-empty folder names separated by
+                          / or backslash, with no '.' or '..' segments ? ;
           short-time-range = "--today"
                          | "--yesterday"
                          | "--last", duration
@@ -180,6 +195,8 @@ public static class CliHelp
           --all                No capture-date restriction.
 
           Optional:
+            --source-folder PATH Device-relative path including the storage name.
+                                 Includes subfolders. Default: all folders.
             --extension LIST   Include only listed extensions, ignoring case.
                                Do not include leading dots.
             --skip-existing    Skip existing targets. This is the default.
@@ -196,6 +213,10 @@ public static class CliHelp
           --from/--to. Duplicate --from or --to options are invalid, and
           --from must not be after --to. Dates use yyyy-MM-dd.
           Specify at most one --extension and at most one existing-file option.
+          --source-folder may occur at most once. Names match exactly.
+          Use / or backslash between names; no leading/trailing separator,
+          empty segment, '.' or '..'. Quote paths containing spaces.
+          A missing or ambiguous folder is an error, not a fallback to all.
 
         TARGET template:
           {capture:FORMAT}      Local capture time.
@@ -212,6 +233,7 @@ public static class CliHelp
               --target "E:\Bilder\{capture:yyyy}\{capture:MM}\{original}.{ext}"
 
           MyMediaImport.Cli.exe import --device-index 1 --last 7d ^
+              --source-folder "Internal Storage/DCIM/Camera" ^
               --extension JPG,HEIC,MOV ^
               --timezone +02:00 ^
               --rename-existing ^

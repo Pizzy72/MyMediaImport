@@ -22,6 +22,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private readonly RelayCommand _cancelImportCommand;
     private DeviceOption? _selectedDevice;
     private string? _preferredDeviceId;
+    private readonly Dictionary<string, string[]> _sourceFolders = new(StringComparer.Ordinal);
     private TimeSelectionMode _selectedTimeSelection = TimeSelectionMode.Today;
     private int _lastDays = 7;
     private DateTime? _fromDate;
@@ -171,6 +172,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 }
 
                 InvalidatePreview("The media source changed. Load the preview again.");
+                OnPropertyChanged(nameof(SourceFolderText));
+                OnPropertyChanged(nameof(CanChooseSourceFolder));
             }
         }
     }
@@ -332,6 +335,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         {
             if (SetField(ref _isLoadingPreview, value))
             {
+                OnPropertyChanged(nameof(CanChooseSourceFolder));
                 _loadPreviewCommand.RaiseCanExecuteChanged();
             }
         }
@@ -381,6 +385,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             if (SetField(ref _isImporting, value))
             {
                 OnPropertyChanged(nameof(IsImportInteractionEnabled));
+                OnPropertyChanged(nameof(CanChooseSourceFolder));
                 _importSelectedCommand.RaiseCanExecuteChanged();
                 _cancelImportCommand.RaiseCanExecuteChanged();
                 RaisePreviewCommandStateChanged();
@@ -389,6 +394,41 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     }
 
     public bool IsImportInteractionEnabled => !IsImporting;
+
+    public bool CanChooseSourceFolder => SelectedDevice is not null && !IsLoadingPreview && !IsImporting;
+
+    public string SourceFolderText => SourceFolderSegments.Count == 0
+        ? "All folders"
+        : string.Join(" / ", SourceFolderSegments);
+
+    internal IReadOnlyList<string> SourceFolderSegments =>
+        SelectedDevice is not null && _sourceFolders.TryGetValue(SelectedDevice.Id, out string[]? path)
+            ? path
+            : Array.Empty<string>();
+
+    internal IFolderMediaSource? CreateFolderSource() => SelectedDevice is { } device
+        ? _mediaSourceFactory.Create(device) as IFolderMediaSource
+        : null;
+
+    internal void SelectSourceFolder(IReadOnlyList<string> path)
+    {
+        if (SelectedDevice is null || IsImporting)
+        {
+            return;
+        }
+
+        if (path.Count == 0)
+        {
+            _sourceFolders.Remove(SelectedDevice.Id);
+        }
+        else
+        {
+            _sourceFolders[SelectedDevice.Id] = path.ToArray();
+        }
+
+        OnPropertyChanged(nameof(SourceFolderText));
+        InvalidatePreview("The source folder changed. Load the preview again.");
+    }
 
     public bool IsImportSuccessful
     {
@@ -652,12 +692,26 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         ExtensionFilter = ExtensionFilter,
         TargetTemplate = TargetTemplate,
         ExistingFilePolicy = ExistingFilePolicy.ToString(),
-        DeviceId = SelectedDevice?.Id ?? _preferredDeviceId
+        DeviceId = SelectedDevice?.Id ?? _preferredDeviceId,
+        SourceFolders = _sourceFolders.Count == 0
+            ? null
+            : _sourceFolders.ToDictionary(entry => entry.Key, entry => entry.Value.ToArray())
     };
 
     private void RestoreSettings(AppUserSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
+        if (settings.SourceFolders is not null)
+        {
+            foreach (KeyValuePair<string, string[]> entry in settings.SourceFolders)
+            {
+                if (entry.Value is { Length: > 0 } &&
+                    entry.Value.All(segment => !string.IsNullOrWhiteSpace(segment)))
+                {
+                    _sourceFolders[entry.Key] = entry.Value.ToArray();
+                }
+            }
+        }
         _selectedTheme = ParseEnum(settings.Theme, AppTheme.System);
         _selectedFontSize = ParseEnum(settings.TextSize, AppFontSize.Medium);
         _selectedTimeSelection = ParseEnum(settings.TimeSelection, TimeSelectionMode.Today);
@@ -1088,6 +1142,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
 
         ClearImportStatus();
+        string[] sourceFolder = SourceFolderSegments.ToArray();
         _previewLoadCancellation?.Cancel();
         _thumbnailLoader?.Cancel();
         ClearTargetPathPreview("Select media to calculate target paths.");
@@ -1108,6 +1163,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 CreateExtensionSelectionRule());
             CaptureTimeZoneSpec timeZoneSpec = CreateTimeZoneSpec();
             IMediaSource mediaSource = _mediaSourceFactory.Create(device);
+            mediaSource = await MediaSourceFolders.OpenAsync(mediaSource, sourceFolder, cancellationToken);
             IReadOnlyList<LoadedMediaItem> mediaItems = await Task.Run(
                 () => LoadMediaItemsAsync(
                     mediaSource,

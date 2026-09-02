@@ -7,6 +7,28 @@ namespace MyMediaImport.App.Tests;
 public sealed class JsonUserSettingsStoreTests
 {
     [TestMethod]
+    public void SaveAndLoad_PreservesFolderSegmentsPerDevice()
+    {
+        RunWithTemporarySettingsPath(settingsPath =>
+        {
+            JsonUserSettingsStore store = new(settingsPath);
+            AppUserSettings settings = new()
+            {
+                SourceFolders = new()
+                {
+                    ["android"] = ["Internal Storage", "DCIM", "Camera"],
+                    ["iphone"] = ["Internal Storage", "202604_a"]
+                }
+            };
+            store.Save(settings);
+            AppUserSettings loaded = store.Load();
+            Assert.IsNotNull(loaded.SourceFolders);
+            CollectionAssert.AreEqual(settings.SourceFolders["android"], loaded.SourceFolders["android"]);
+            CollectionAssert.AreEqual(settings.SourceFolders["iphone"], loaded.SourceFolders["iphone"]);
+        });
+    }
+
+    [TestMethod]
     public void Load_WhenFileIsMissing_ReturnsDefaults()
     {
         RunWithTemporarySettingsPath(settingsPath =>

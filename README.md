@@ -56,6 +56,26 @@ before deleting anything from the source device.
 - Safe imports through temporary partial files before publishing final files
 - Self-contained Windows publishing for both the desktop application and CLI
 
+## Choose a source folder
+
+Under **Media source**, use **Choose folder...** to restrict the preview and
+import to a device folder, including its subfolders. The folder tree loads on
+demand and does not modify files. Select **All folders** to remove the restriction.
+
+The application remembers the folder separately for each device. It resolves
+the saved folder names again when loading the preview; if a folder is missing
+or ambiguous, choose it again instead of silently searching the whole device.
+
+The CLI supports the same selection for `list` and `import`:
+
+```powershell
+MyMediaImport.Cli.exe list --device-index 1 --source-folder "Internal Storage/DCIM/Camera"
+```
+
+Use the names exposed by your device, including its storage name. Names are
+matched exactly. Both `/` and `\` are accepted as CLI separators. Omitting
+`--source-folder` searches all folders; CLI commands do not use desktop settings.
+
 ## Why I created this project
 
 I wanted a focused Windows tool that makes it quick to import the newest photos

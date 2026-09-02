@@ -106,4 +106,24 @@ public partial class MainWindow : Window
             _themeService.ApplyTitleBar(helpWindow, _viewModel.SelectedTheme);
         helpWindow.Show();
     }
+
+    private void ChooseSourceFolder_OnClick(object sender, RoutedEventArgs e)
+    {
+        IFolderMediaSource? source = _viewModel.CreateFolderSource();
+        if (source is null)
+        {
+            System.Windows.MessageBox.Show(this,
+                "Select a device that supports folder browsing first.",
+                "Source folder", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        SourceFolderWindow dialog = new(source, _viewModel.SourceFolderSegments) { Owner = this };
+        dialog.SourceInitialized += (_, _) =>
+            _themeService.ApplyTitleBar(dialog, _viewModel.SelectedTheme);
+        if (dialog.ShowDialog() == true)
+        {
+            _viewModel.SelectSourceFolder(dialog.SelectedPath);
+        }
+    }
 }

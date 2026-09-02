@@ -28,6 +28,7 @@ internal static class WpdMediaKeys
     internal static IReadOnlyList<WpdInterop.PropertyKey> MetadataProperties { get; } =
     [
         ObjectId,
+        Name,
         OriginalFileName,
         ContentType,
         Format,
