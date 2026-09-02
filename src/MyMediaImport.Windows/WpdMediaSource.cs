@@ -135,14 +135,14 @@ public sealed class WpdMediaSource : IFolderMediaSource
         try
         {
             using WpdSession session = WpdSession.Open(DeviceId);
-            Stack<string> containers = new();
-            containers.Push(_rootObjectId);
+            Stack<(string Id, string? Path)> containers = new();
+            containers.Push((_rootObjectId, GetRootPath(session, cancellationToken)));
             HashSet<string> visited = new(StringComparer.Ordinal);
 
             while (containers.Count > 0)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                string parentObjectId = containers.Pop();
+                (string parentObjectId, string? parentPath) = containers.Pop();
                 if (!visited.Add(parentObjectId))
                 {
                     continue;
@@ -155,7 +155,9 @@ public sealed class WpdMediaSource : IFolderMediaSource
 
                     if (IsContainer(metadata))
                     {
-                        containers.Push(objectId);
+                        string? folderName = string.IsNullOrWhiteSpace(metadata.OriginalFileName)
+                            ? metadata.Name : metadata.OriginalFileName;
+                        containers.Push((objectId, AppendSourcePath(parentPath, folderName)));
                         continue;
                     }
 
@@ -182,7 +184,8 @@ public sealed class WpdMediaSource : IFolderMediaSource
                             ? CaptureTimestamp.FromLocalTime(localTime)
                             : null,
                         classification.MediaKind,
-                        classification.MimeType);
+                        classification.MimeType,
+                        AppendSourcePath(parentPath, fileName));
                     writer.WriteAsync(mediaItem, cancellationToken).AsTask().GetAwaiter().GetResult();
                 }
             }
@@ -194,6 +197,40 @@ public sealed class WpdMediaSource : IFolderMediaSource
             writer.TryComplete(exception);
         }
     }
+
+    private string? GetRootPath(WpdSession session, CancellationToken cancellationToken)
+    {
+        List<string> segments = [];
+        HashSet<string> visited = new(StringComparer.Ordinal);
+        string? objectId = _rootObjectId;
+        while (objectId != RootObjectId)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (string.IsNullOrWhiteSpace(objectId) || !visited.Add(objectId))
+            {
+                return null;
+            }
+
+            WpdObjectMetadata metadata = ReadMetadata(session, objectId);
+            string? name = string.IsNullOrWhiteSpace(metadata.OriginalFileName)
+                ? metadata.Name : metadata.OriginalFileName;
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return null;
+            }
+
+            segments.Add(name);
+            objectId = metadata.ParentId;
+        }
+
+        segments.Reverse();
+        return string.Join(" / ", segments);
+    }
+
+    private static string? AppendSourcePath(string? parentPath, string? name) =>
+        parentPath is null || string.IsNullOrWhiteSpace(name)
+            ? null
+            : parentPath.Length == 0 ? name : parentPath + " / " + name;
 
     private Stream? OpenResource(
         string objectId,
@@ -265,6 +302,7 @@ public sealed class WpdMediaSource : IFolderMediaSource
             return new WpdObjectMetadata(
                 GetString(values, WpdMediaKeys.OriginalFileName),
                 GetString(values, WpdMediaKeys.Name),
+                GetString(values, WpdMediaKeys.ParentId),
                 GetGuid(values, WpdMediaKeys.ContentType),
                 GetUnsignedInteger(values, WpdMediaKeys.Size),
                 GetDate(values, WpdMediaKeys.DateCreated),
@@ -386,6 +424,7 @@ public sealed class WpdMediaSource : IFolderMediaSource
     private sealed record WpdObjectMetadata(
         string? OriginalFileName,
         string? Name,
+        string? ParentId,
         Guid? ContentType,
         ulong? Size,
         DateTime? DateCreated,

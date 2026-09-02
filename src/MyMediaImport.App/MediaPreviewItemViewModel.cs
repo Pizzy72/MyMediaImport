@@ -38,6 +38,10 @@ public sealed class MediaPreviewItemViewModel : INotifyPropertyChanged
 
     public string Name => MediaItem.Name;
 
+    public string NameToolTip => string.IsNullOrWhiteSpace(SourceMediaItem.SourcePath)
+        ? Name
+        : SourceMediaItem.SourcePath;
+
     public string MediaKindText => MediaItem.MediaKind switch
     {
         MediaKind.Photo => "Photo",

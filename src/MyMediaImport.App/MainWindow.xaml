@@ -233,6 +233,9 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="{Binding PreviewStatus}"
                                        Style="{StaticResource MutedTextStyle}"
+                                       TextWrapping="NoWrap"
+                                       TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding PreviewStatusToolTip}"
                                        AutomationProperties.AutomationId="PreviewStatus"
                                        VerticalAlignment="Center" />
                             <ProgressBar Grid.Column="1"
@@ -320,7 +323,7 @@
                                             <TextBlock Text="{Binding Name}"
                                                        FontWeight="SemiBold"
                                                        TextTrimming="CharacterEllipsis"
-                                                       ToolTip="{Binding Name}" />
+                                                       ToolTip="{Binding NameToolTip}" />
                                             <TextBlock Text="{Binding CaptureTimeText}"
                                                        Style="{StaticResource MutedTextStyle}"
                                                        Margin="0,4,0,0" />

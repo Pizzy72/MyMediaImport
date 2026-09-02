@@ -7,6 +7,8 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-02
+
 ### Added
 
 - A lazy-loading source folder picker with per-device remembered selections.
@@ -14,6 +16,10 @@ and this project uses [Semantic Versioning](https://semver.org/).
   stop preview loading rather than silently selecting the whole device.
 - Optional `--source-folder` for CLI `list` and `import`, using the same folder
   resolution as the desktop application.
+- Compact preview status showing the loaded source folder beside the media
+  count, with the full path and preview details available in a tooltip.
+- Filename tooltips show each media item's full device path, including nested
+  folders, without increasing preview row heights.
 
 ## [1.1.0] - 2026-09-01
 
@@ -61,5 +67,6 @@ and this project uses [Semantic Versioning](https://semver.org/).
 - Self-contained publishing for 64-bit Windows.
 
 [1.1.0]: https://github.com/Pizzy72/MyMediaImport/compare/v1.0.0...v1.1.0
-[Unreleased]: https://github.com/Pizzy72/MyMediaImport/compare/v1.1.0...HEAD
+[1.2.0]: https://github.com/Pizzy72/MyMediaImport/compare/v1.1.0...v1.2.0
+[Unreleased]: https://github.com/Pizzy72/MyMediaImport/compare/v1.2.0...HEAD
 [1.0.0]: https://github.com/Pizzy72/MyMediaImport/releases/tag/v1.0.0

@@ -48,6 +48,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private string _deviceStatus = "Devices have not been loaded yet.";
     private string _validationStatus = "Settings are valid.";
     private string _previewStatus = "Select a device and load the preview.";
+    private string _previewStatusToolTip = "Select a device and load the preview.";
     private string _targetPathStatus = "Select media to calculate target paths.";
     private string _importStatus = string.Empty;
     private string _importFileProgress = string.Empty;
@@ -356,7 +357,24 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public string PreviewStatus
     {
         get => _previewStatus;
-        private set => SetField(ref _previewStatus, value);
+        private set
+        {
+            SetField(ref _previewStatus, value);
+            PreviewStatusToolTip = value;
+        }
+    }
+
+    public string PreviewStatusToolTip
+    {
+        get => _previewStatusToolTip;
+        private set => SetField(ref _previewStatusToolTip, value);
+    }
+
+    internal static string FormatPreviewSummary(int count, IReadOnlyList<string> sourceFolder)
+    {
+        string source = sourceFolder.Count == 0 ? "All folders" : string.Join(" / ", sourceFolder);
+        string mediaLabel = count == 1 ? "media file" : "media files";
+        return $"{count} {mediaLabel} · {source}";
     }
 
     public bool IsPlanningTargetPaths
@@ -1188,9 +1206,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                     newThumbnailLoader,
                     OnSelectionChanged))
                 .ToArray();
-            PreviewStatus = PreviewItems.Count == 0
-                ? "No media matched the current device and filters."
-                : $"{PreviewItems.Count} media file(s), newest first. Thumbnails load as needed.";
+            PreviewStatus = FormatPreviewSummary(PreviewItems.Count, sourceFolder);
+            PreviewStatusToolTip = PreviewStatus + Environment.NewLine +
+                (PreviewItems.Count == 0
+                    ? "No media matched the current device and filters."
+                    : "Newest first. Thumbnails load as needed.");
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {

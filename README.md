@@ -27,6 +27,8 @@ WPF application and a command-line interface.
 
 ## Current status
 
+Current version: **1.2.0**. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+
 MyMediaImport is under active development. The application already supports the
 main import workflow, but it should still be considered an early version.
 
@@ -49,6 +51,8 @@ before deleting anything from the source device.
 - Command-line interface for scripted and unattended use
 - Discover portable devices through Windows Portable Devices (WPD)
 - Browse and filter photos and videos by date, file extension, and media type
+- Choose a source folder with recursive scanning and per-device remembered selections
+- Inspect each file's device path in the filename tooltip without enlarging preview rows
 - Preview generated target paths before importing
 - Configurable path templates using local or UTC capture timestamps
 - Explicit handling of unknown capture time zones
@@ -65,6 +69,17 @@ demand and does not modify files. Select **All folders** to remove the restricti
 The application remembers the folder separately for each device. It resolves
 the saved folder names again when loading the preview; if a folder is missing
 or ambiguous, choose it again instead of silently searching the whole device.
+
+The **Media preview** header shows the folder used for the loaded preview.
+Hover over a filename to see that file's full device path, including its actual
+subfolders and filename. If the device does not provide enough path information,
+the tooltip shows only the filename. These are virtual device paths, not local
+Windows filesystem paths.
+
+For example, selecting `Internal Storage / DCIM` includes photos in
+`Internal Storage / DCIM / Camera`, but not files in a neighboring `Download`
+folder. Folder names and layout depend on the device; choose the folders shown
+by your device rather than assuming every device uses `DCIM / Camera`.
 
 The CLI supports the same selection for `list` and `import`:
 

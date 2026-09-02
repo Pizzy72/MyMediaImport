@@ -8,7 +8,8 @@ public sealed record MediaItem
         long? size,
         CaptureTimestamp? captureTime,
         MediaKind mediaKind,
-        string? mimeType)
+        string? mimeType,
+        string? sourcePath = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -23,6 +24,7 @@ public sealed record MediaItem
         CaptureTime = captureTime;
         MediaKind = mediaKind;
         MimeType = mimeType;
+        SourcePath = sourcePath;
     }
 
     public string Id { get; }
@@ -37,6 +39,9 @@ public sealed record MediaItem
 
     public string? MimeType { get; }
 
+    /// <summary>A display-only source path, including the filename; not a local filesystem path.</summary>
+    public string? SourcePath { get; }
+
     public MediaItem WithCaptureTime(CaptureTimestamp? captureTime) =>
-        new(Id, Name, Size, captureTime, MediaKind, MimeType);
+        new(Id, Name, Size, captureTime, MediaKind, MimeType, SourcePath);
 }
