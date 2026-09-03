@@ -8,19 +8,67 @@ using MyMediaImport.Core;
 namespace MyMediaImport.Windows;
 
 [SupportedOSPlatform("windows")]
-public sealed class WpdMediaSource : IMediaSource
+public sealed class WpdMediaSource : IFolderMediaSource
 {
     private const string RootObjectId = "DEVICE";
     private const int ChannelCapacity = 64;
     private const uint ReadAccessMode = 0;
+    private readonly string _rootObjectId;
 
-    public WpdMediaSource(string deviceId)
+    public WpdMediaSource(string deviceId) : this(deviceId, RootObjectId)
+    {
+    }
+
+    private WpdMediaSource(string deviceId, string rootObjectId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(deviceId);
         DeviceId = deviceId;
+        _rootObjectId = rootObjectId;
     }
 
     public string DeviceId { get; }
+
+    public async ValueTask<IReadOnlyList<MediaSourceFolder>> GetFoldersAsync(
+        string? parentFolderId = null,
+        CancellationToken cancellationToken = default) =>
+        await Task.Run<IReadOnlyList<MediaSourceFolder>>(() =>
+        {
+            using WpdSession session = WpdSession.Open(DeviceId);
+            List<MediaSourceFolder> folders = [];
+            foreach (string objectId in EnumerateChildren(
+                         session.Content, parentFolderId ?? _rootObjectId))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                WpdObjectMetadata metadata = ReadMetadata(session, objectId);
+                if (!IsContainer(metadata))
+                {
+                    continue;
+                }
+
+                string? name = string.IsNullOrWhiteSpace(metadata.OriginalFileName)
+                    ? metadata.Name
+                    : metadata.OriginalFileName;
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    throw new InvalidOperationException(
+                        "The device returned an unnamed folder. Folder selection is unavailable for this branch.");
+                }
+
+                folders.Add(new MediaSourceFolder(objectId, name));
+            }
+
+            return folders.OrderBy(folder => folder.Name, StringComparer.OrdinalIgnoreCase).ToArray();
+        }, cancellationToken).ConfigureAwait(false);
+
+    public IMediaSource OpenFolder(MediaSourceFolder folder)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+        return new WpdMediaSource(DeviceId, folder.Id);
+    }
+
+    private static bool IsContainer(WpdObjectMetadata metadata) =>
+        metadata.ContentType == WpdMediaKeys.FolderContentType ||
+        metadata.ContentType == WpdMediaKeys.FunctionalObjectContentType;
 
     public async IAsyncEnumerable<MediaItem> GetMediaItemsAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -87,24 +135,30 @@ public sealed class WpdMediaSource : IMediaSource
         try
         {
             using WpdSession session = WpdSession.Open(DeviceId);
-            Stack<string> containers = new();
-            containers.Push(RootObjectId);
+            Stack<(string Id, string? Path)> containers = new();
+            containers.Push((_rootObjectId, GetRootPath(session, cancellationToken)));
+            HashSet<string> visited = new(StringComparer.Ordinal);
 
             while (containers.Count > 0)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                string parentObjectId = containers.Pop();
+                (string parentObjectId, string? parentPath) = containers.Pop();
+                if (!visited.Add(parentObjectId))
+                {
+                    continue;
+                }
 
                 foreach (string objectId in EnumerateChildren(session.Content, parentObjectId))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     WpdObjectMetadata metadata = ReadMetadata(session, objectId);
 
-                    if (metadata.ContentType is { } contentType &&
-                        (contentType == WpdMediaKeys.FolderContentType ||
-                         contentType == WpdMediaKeys.FunctionalObjectContentType))
+                    if (IsContainer(metadata))
                     {
-                        containers.Push(objectId);
+                        string? folderName = string.IsNullOrWhiteSpace(metadata.OriginalFileName)
+                            ? metadata.Name : metadata.OriginalFileName;
+                        containers.Push((objectId, AppendSourcePath(parentPath, folderName)));
+                        continue;
                     }
 
                     if (metadata.OriginalFileName is not { } fileName)
@@ -130,7 +184,8 @@ public sealed class WpdMediaSource : IMediaSource
                             ? CaptureTimestamp.FromLocalTime(localTime)
                             : null,
                         classification.MediaKind,
-                        classification.MimeType);
+                        classification.MimeType,
+                        AppendSourcePath(parentPath, fileName));
                     writer.WriteAsync(mediaItem, cancellationToken).AsTask().GetAwaiter().GetResult();
                 }
             }
@@ -142,6 +197,40 @@ public sealed class WpdMediaSource : IMediaSource
             writer.TryComplete(exception);
         }
     }
+
+    private string? GetRootPath(WpdSession session, CancellationToken cancellationToken)
+    {
+        List<string> segments = [];
+        HashSet<string> visited = new(StringComparer.Ordinal);
+        string? objectId = _rootObjectId;
+        while (objectId != RootObjectId)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (string.IsNullOrWhiteSpace(objectId) || !visited.Add(objectId))
+            {
+                return null;
+            }
+
+            WpdObjectMetadata metadata = ReadMetadata(session, objectId);
+            string? name = string.IsNullOrWhiteSpace(metadata.OriginalFileName)
+                ? metadata.Name : metadata.OriginalFileName;
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return null;
+            }
+
+            segments.Add(name);
+            objectId = metadata.ParentId;
+        }
+
+        segments.Reverse();
+        return string.Join(" / ", segments);
+    }
+
+    private static string? AppendSourcePath(string? parentPath, string? name) =>
+        parentPath is null || string.IsNullOrWhiteSpace(name)
+            ? null
+            : parentPath.Length == 0 ? name : parentPath + " / " + name;
 
     private Stream? OpenResource(
         string objectId,
@@ -212,6 +301,8 @@ public sealed class WpdMediaSource : IMediaSource
             session.Properties.GetValues(objectId, session.MetadataKeys, out values);
             return new WpdObjectMetadata(
                 GetString(values, WpdMediaKeys.OriginalFileName),
+                GetString(values, WpdMediaKeys.Name),
+                GetString(values, WpdMediaKeys.ParentId),
                 GetGuid(values, WpdMediaKeys.ContentType),
                 GetUnsignedInteger(values, WpdMediaKeys.Size),
                 GetDate(values, WpdMediaKeys.DateCreated),
@@ -332,6 +423,8 @@ public sealed class WpdMediaSource : IMediaSource
 
     private sealed record WpdObjectMetadata(
         string? OriginalFileName,
+        string? Name,
+        string? ParentId,
         Guid? ContentType,
         ulong? Size,
         DateTime? DateCreated,

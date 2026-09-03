@@ -71,9 +71,15 @@ public sealed class LocalImportFileSystem : IImportFileSystem
         string partialPath,
         string targetPath,
         bool overwrite,
+        DateTimeOffset? creationTime,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        if (creationTime is { } captureTime)
+        {
+            File.SetCreationTimeUtc(partialPath, captureTime.UtcDateTime);
+        }
 
         if (!overwrite)
         {
@@ -86,6 +92,12 @@ public sealed class LocalImportFileSystem : IImportFileSystem
         else
         {
             File.Move(partialPath, targetPath, overwrite: false);
+        }
+
+        // Replacement and Windows file tunneling can retain an older creation time.
+        if (creationTime is { } publishedCaptureTime)
+        {
+            File.SetCreationTimeUtc(targetPath, publishedCaptureTime.UtcDateTime);
         }
 
         return ValueTask.CompletedTask;

@@ -41,6 +41,22 @@ public sealed class ThumbnailLoaderTests
     private static MediaItem CreateMediaItem(MediaKind mediaKind) =>
         new("item-1", "example.jpg", TestPng.Length, null, mediaKind, "image/jpeg");
 
+    [TestMethod]
+    [DataRow(null, "example.jpg")]
+    [DataRow("", "example.jpg")]
+    [DataRow("Internal Storage / DCIM / Camera / example.jpg", "Internal Storage / DCIM / Camera / example.jpg")]
+    public void FilenameTooltip_ShowsSourcePathWithoutLoadingMedia(string? sourcePath, string expected)
+    {
+        TestMediaSource source = new(null, TestPng);
+        MediaItem item = new("id", "example.jpg", 42, null, MediaKind.Photo, "image/jpeg", sourcePath);
+        MediaPreviewItemViewModel preview = new(item, item, new ThumbnailLoader(source), () => { });
+        Assert.AreEqual(expected, preview.NameToolTip);
+        preview.UpdateResolvedCaptureTime(CaptureTimestamp.FromKnownTime(DateTimeOffset.UtcNow));
+        Assert.AreEqual(expected, preview.NameToolTip);
+        Assert.AreEqual(0, source.OpenReadCount);
+        Assert.AreEqual(0, source.OpenThumbnailCount);
+    }
+
     private sealed class TestMediaSource : IMediaSource
     {
         private readonly byte[]? _thumbnailBytes;

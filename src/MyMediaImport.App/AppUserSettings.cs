@@ -36,6 +36,8 @@ internal sealed record AppUserSettings
 
     public string? DeviceId { get; init; }
 
+    public Dictionary<string, string[]>? SourceFolders { get; init; }
+
     public WindowPlacementSettings? MainWindow { get; init; } = new();
 
     public static AppUserSettings CreateDefault() => new();

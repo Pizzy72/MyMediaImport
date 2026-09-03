@@ -1,6 +1,7 @@
 using MyMediaImport.Core;
 using MyMediaImport.Windows;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 
@@ -105,5 +106,65 @@ public partial class MainWindow : Window
         helpWindow.SourceInitialized += (_, _) =>
             _themeService.ApplyTitleBar(helpWindow, _viewModel.SelectedTheme);
         helpWindow.Show();
+    }
+
+    private void ChooseSourceFolder_OnClick(object sender, RoutedEventArgs e)
+    {
+        IFolderMediaSource? source = _viewModel.CreateFolderSource();
+        if (source is null)
+        {
+            System.Windows.MessageBox.Show(this,
+                "Select a device that supports folder browsing first.",
+                "Source folder", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        SourceFolderWindow dialog = new(source, _viewModel.SourceFolderSegments) { Owner = this };
+        dialog.SourceInitialized += (_, _) =>
+            _themeService.ApplyTitleBar(dialog, _viewModel.SelectedTheme);
+        if (dialog.ShowDialog() == true)
+        {
+            _viewModel.SelectSourceFolder(dialog.SelectedPath);
+        }
+    }
+
+    private void ShowTargetFileInExplorer_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string targetPath })
+        {
+            return;
+        }
+
+        if (!File.Exists(targetPath))
+        {
+            System.Windows.MessageBox.Show(
+                this,
+                "The target file no longer exists.",
+                "Show target file",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        ProcessStartInfo startInfo = new("explorer.exe")
+        {
+            UseShellExecute = true
+        };
+        startInfo.ArgumentList.Add("/select,");
+        startInfo.ArgumentList.Add(targetPath);
+        try
+        {
+            Process.Start(startInfo);
+        }
+        catch (Exception exception) when (
+            exception is Win32Exception or InvalidOperationException)
+        {
+            System.Windows.MessageBox.Show(
+                this,
+                $"The target file could not be shown: {exception.Message}",
+                "Show target file",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
     }
 }

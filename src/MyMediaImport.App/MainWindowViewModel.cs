@@ -22,6 +22,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private readonly RelayCommand _cancelImportCommand;
     private DeviceOption? _selectedDevice;
     private string? _preferredDeviceId;
+    private readonly Dictionary<string, string[]> _sourceFolders = new(StringComparer.Ordinal);
     private TimeSelectionMode _selectedTimeSelection = TimeSelectionMode.Today;
     private int _lastDays = 7;
     private DateTime? _fromDate;
@@ -41,12 +42,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private bool _isImportSuccessful;
     private bool _isImportCancelled;
     private bool _isImportFailed;
+    private bool _isShowingImportResultPaths;
     private bool _settingsValid;
     private bool _suppressSelectionUpdates;
     private int _targetPlanErrorCount;
     private string _deviceStatus = "Devices have not been loaded yet.";
     private string _validationStatus = "Settings are valid.";
     private string _previewStatus = "Select a device and load the preview.";
+    private string _previewStatusToolTip = "Select a device and load the preview.";
     private string _targetPathStatus = "Select media to calculate target paths.";
     private string _importStatus = string.Empty;
     private string _importFileProgress = string.Empty;
@@ -171,6 +174,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 }
 
                 InvalidatePreview("The media source changed. Load the preview again.");
+                OnPropertyChanged(nameof(SourceFolderText));
+                OnPropertyChanged(nameof(CanChooseSourceFolder));
             }
         }
     }
@@ -332,6 +337,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         {
             if (SetField(ref _isLoadingPreview, value))
             {
+                OnPropertyChanged(nameof(CanChooseSourceFolder));
                 _loadPreviewCommand.RaiseCanExecuteChanged();
             }
         }
@@ -352,7 +358,24 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public string PreviewStatus
     {
         get => _previewStatus;
-        private set => SetField(ref _previewStatus, value);
+        private set
+        {
+            SetField(ref _previewStatus, value);
+            PreviewStatusToolTip = value;
+        }
+    }
+
+    public string PreviewStatusToolTip
+    {
+        get => _previewStatusToolTip;
+        private set => SetField(ref _previewStatusToolTip, value);
+    }
+
+    internal static string FormatPreviewSummary(int count, IReadOnlyList<string> sourceFolder)
+    {
+        string source = sourceFolder.Count == 0 ? "All folders" : string.Join(" / ", sourceFolder);
+        string mediaLabel = count == 1 ? "media file" : "media files";
+        return $"{count} {mediaLabel} · {source}";
     }
 
     public bool IsPlanningTargetPaths
@@ -381,6 +404,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             if (SetField(ref _isImporting, value))
             {
                 OnPropertyChanged(nameof(IsImportInteractionEnabled));
+                OnPropertyChanged(nameof(CanChooseSourceFolder));
                 _importSelectedCommand.RaiseCanExecuteChanged();
                 _cancelImportCommand.RaiseCanExecuteChanged();
                 RaisePreviewCommandStateChanged();
@@ -389,6 +413,41 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     }
 
     public bool IsImportInteractionEnabled => !IsImporting;
+
+    public bool CanChooseSourceFolder => SelectedDevice is not null && !IsLoadingPreview && !IsImporting;
+
+    public string SourceFolderText => SourceFolderSegments.Count == 0
+        ? "All folders"
+        : string.Join(" / ", SourceFolderSegments);
+
+    internal IReadOnlyList<string> SourceFolderSegments =>
+        SelectedDevice is not null && _sourceFolders.TryGetValue(SelectedDevice.Id, out string[]? path)
+            ? path
+            : Array.Empty<string>();
+
+    internal IFolderMediaSource? CreateFolderSource() => SelectedDevice is { } device
+        ? _mediaSourceFactory.Create(device) as IFolderMediaSource
+        : null;
+
+    internal void SelectSourceFolder(IReadOnlyList<string> path)
+    {
+        if (SelectedDevice is null || IsImporting)
+        {
+            return;
+        }
+
+        if (path.Count == 0)
+        {
+            _sourceFolders.Remove(SelectedDevice.Id);
+        }
+        else
+        {
+            _sourceFolders[SelectedDevice.Id] = path.ToArray();
+        }
+
+        OnPropertyChanged(nameof(SourceFolderText));
+        InvalidatePreview("The source folder changed. Load the preview again.");
+    }
 
     public bool IsImportSuccessful
     {
@@ -544,7 +603,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public bool HasTargetPathItems => TargetPathItems.Count > 0;
 
-    public int TargetSelectedCount => PreviewItems.Count(item => item.IsSelected);
+    public int TargetSelectedCount => TargetPathItems.Count > 0
+        ? TargetPathItems.Count
+        : PreviewItems.Count(item => item.IsSelected);
 
     public int TargetReadyCount => TargetPathItems.Count(item => item.IsImportReady);
 
@@ -558,13 +619,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     {
         get
         {
-            MediaPreviewItemViewModel[] selectedItems = PreviewItems
-                .Where(item => item.IsSelected)
-                .ToArray();
-            long knownSize = selectedItems
-                .Where(item => item.SourceMediaItem.Size.HasValue)
-                .Sum(item => item.SourceMediaItem.Size!.Value);
-            int unknownSizeCount = selectedItems.Count(item => !item.SourceMediaItem.Size.HasValue);
+            long?[] sizes = TargetPathItems.Count > 0
+                ? TargetPathItems.Select(item => item.ExpectedSize).ToArray()
+                : PreviewItems
+                    .Where(item => item.IsSelected)
+                    .Select(item => item.SourceMediaItem.Size)
+                    .ToArray();
+            long knownSize = sizes.Where(size => size.HasValue).Sum(size => size!.Value);
+            int unknownSizeCount = sizes.Count(size => !size.HasValue);
             string knownText = FormatByteSize(knownSize);
             return unknownSizeCount == 0
                 ? knownText
@@ -652,12 +714,26 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         ExtensionFilter = ExtensionFilter,
         TargetTemplate = TargetTemplate,
         ExistingFilePolicy = ExistingFilePolicy.ToString(),
-        DeviceId = SelectedDevice?.Id ?? _preferredDeviceId
+        DeviceId = SelectedDevice?.Id ?? _preferredDeviceId,
+        SourceFolders = _sourceFolders.Count == 0
+            ? null
+            : _sourceFolders.ToDictionary(entry => entry.Key, entry => entry.Value.ToArray())
     };
 
     private void RestoreSettings(AppUserSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
+        if (settings.SourceFolders is not null)
+        {
+            foreach (KeyValuePair<string, string[]> entry in settings.SourceFolders)
+            {
+                if (entry.Value is { Length: > 0 } &&
+                    entry.Value.All(segment => !string.IsNullOrWhiteSpace(segment)))
+                {
+                    _sourceFolders[entry.Key] = entry.Value.ToArray();
+                }
+            }
+        }
         _selectedTheme = ParseEnum(settings.Theme, AppTheme.System);
         _selectedFontSize = ParseEnum(settings.TextSize, AppFontSize.Medium);
         _selectedTimeSelection = ParseEnum(settings.TimeSelection, TimeSelectionMode.Today);
@@ -816,6 +892,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
             ApplyImportResults(importPlan, result.Results);
             DeselectProcessedItems(result.Results);
+            ShowImportResultPaths(result.Results);
             bool wasCancelled = result.Results.Any(
                 item => item.Status == ImportResultStatus.Cancelled);
             IsImportSuccessful = !wasCancelled && ImportFailedCount == 0;
@@ -1031,7 +1108,27 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             _suppressSelectionUpdates = false;
         }
 
-        OnSelectionChanged();
+        CurrentImportPlan = null;
+        OnPropertyChanged(nameof(SelectedSummary));
+        OnPropertyChanged(nameof(TargetSelectedCount));
+        OnPropertyChanged(nameof(TargetTotalSizeText));
+        _selectNoneCommand.RaiseCanExecuteChanged();
+        _importSelectedCommand.RaiseCanExecuteChanged();
+    }
+
+    private void ShowImportResultPaths(IReadOnlyList<ImportResult> results)
+    {
+        _targetPathPlanCancellation?.Cancel();
+        _targetPathPlanCancellation = null;
+        IsPlanningTargetPaths = false;
+        SetTargetPlanErrorCount(0);
+        _isShowingImportResultPaths = true;
+        TargetPathItems = results
+            .Select(result => new TargetPathPreviewItemViewModel(result))
+            .ToArray();
+        TargetPathStatus = results.Count == 1
+            ? "Resulting path from the last import."
+            : $"Resulting paths from the last import ({results.Count} files).";
     }
 
     private void AddImportResultToSummary(ImportResult result)
@@ -1088,6 +1185,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
 
         ClearImportStatus();
+        string[] sourceFolder = SourceFolderSegments.ToArray();
         _previewLoadCancellation?.Cancel();
         _thumbnailLoader?.Cancel();
         ClearTargetPathPreview("Select media to calculate target paths.");
@@ -1108,6 +1206,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 CreateExtensionSelectionRule());
             CaptureTimeZoneSpec timeZoneSpec = CreateTimeZoneSpec();
             IMediaSource mediaSource = _mediaSourceFactory.Create(device);
+            mediaSource = await MediaSourceFolders.OpenAsync(mediaSource, sourceFolder, cancellationToken);
             IReadOnlyList<LoadedMediaItem> mediaItems = await Task.Run(
                 () => LoadMediaItemsAsync(
                     mediaSource,
@@ -1132,9 +1231,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                     newThumbnailLoader,
                     OnSelectionChanged))
                 .ToArray();
-            PreviewStatus = PreviewItems.Count == 0
-                ? "No media matched the current device and filters."
-                : $"{PreviewItems.Count} media file(s), newest first. Thumbnails load as needed.";
+            PreviewStatus = FormatPreviewSummary(PreviewItems.Count, sourceFolder);
+            PreviewStatusToolTip = PreviewStatus + Environment.NewLine +
+                (PreviewItems.Count == 0
+                    ? "No media matched the current device and filters."
+                    : "Newest first. Thumbnails load as needed.");
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
@@ -1235,6 +1336,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         CancellationTokenSource? previousRequest = _targetPathPlanCancellation;
         _targetPathPlanCancellation = null;
         previousRequest?.Cancel();
+        _isShowingImportResultPaths = false;
 
         int selectedCount = PreviewItems.Count(item => item.IsSelected);
         if (selectedCount == 0 || _previewMediaSource is null)
@@ -1341,6 +1443,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         request?.Cancel();
         IsPlanningTargetPaths = false;
         CurrentImportPlan = null;
+        _isShowingImportResultPaths = false;
         SetTargetPlanErrorCount(0);
         TargetPathItems = Array.Empty<TargetPathPreviewItemViewModel>();
         TargetPathStatus = status;
@@ -1414,6 +1517,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         if (!IsImporting)
         {
             ClearImportStatus();
+            if (_isShowingImportResultPaths)
+            {
+                ClearTargetPathPreview("Updating target paths for the new selection...");
+            }
         }
 
         OnPropertyChanged(nameof(SelectedSummary));

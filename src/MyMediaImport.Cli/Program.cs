@@ -124,7 +124,8 @@ static async Task<int> ImportBatchAsync(string[] arguments)
             return CliExitCodes.UsageError;
         }
 
-        WpdMediaSource source = new(device.Id);
+        IMediaSource source = await MediaSourceFolders.OpenAsync(
+            new WpdMediaSource(device.Id), parsed.SourceFolder, cancellation.Token);
         IMediaSelectionRule selectionRule = new LocalCaptureDateRangeSelectionRule(
             parsed.CaptureDateRange);
         if (parsed.ExtensionFilter is not null)
@@ -209,6 +210,7 @@ static bool TryParseImportArguments(
     ExistingFilePolicy policy = ExistingFilePolicy.Skip;
     int policyOptionCount = 0;
     MediaExtensionSelectionRule? extensionFilter = null;
+    string[]? sourceFolder = null;
 
     for (int index = 0; index < arguments.Length; index++)
     {
@@ -273,6 +275,21 @@ static bool TryParseImportArguments(
 
             deviceIndex = selectedIndex;
             deviceIndexSpecified = true;
+        }
+        else if (option.Equals("--source-folder", StringComparison.OrdinalIgnoreCase))
+        {
+            if (sourceFolder is not null)
+            {
+                parsed = null;
+                error = "--source-folder may only be specified once.";
+                return false;
+            }
+
+            if (!TryParseSourceFolder(value, out sourceFolder, out error))
+            {
+                parsed = null;
+                return false;
+            }
         }
         else if (option.Equals("--timezone", StringComparison.OrdinalIgnoreCase))
         {
@@ -414,7 +431,7 @@ static bool TryParseImportArguments(
     }
 
     parsed = new ImportArguments(
-        deviceIndex.Value, timezone, targetTemplate, policy, captureDateRange, extensionFilter);
+        deviceIndex.Value, timezone, targetTemplate, policy, captureDateRange, extensionFilter, sourceFolder ?? []);
     error = null;
     return true;
 }
@@ -699,7 +716,8 @@ static async Task<int> ListMediaAsync(string[] arguments)
             return 2;
         }
 
-        WpdMediaSource source = new(device.Id);
+        IMediaSource source = await MediaSourceFolders.OpenAsync(
+            new WpdMediaSource(device.Id), parsed.SourceFolder);
         int count = 0;
         await foreach (MediaItem mediaItem in source.GetMediaItemsAsync())
         {
@@ -744,6 +762,7 @@ static bool TryParseListArguments(
     int limit = 50;
     bool showId = false;
     MediaExtensionSelectionRule? extensionFilter = null;
+    string[]? sourceFolder = null;
 
     for (int index = 0; index < arguments.Length; index++)
     {
@@ -781,6 +800,21 @@ static bool TryParseListArguments(
             deviceIndex = selectedIndex;
             deviceIndexSpecified = true;
         }
+        else if (option.Equals("--source-folder", StringComparison.OrdinalIgnoreCase))
+        {
+            if (sourceFolder is not null)
+            {
+                parsed = null;
+                error = "--source-folder may only be specified once.";
+                return false;
+            }
+
+            if (!TryParseSourceFolder(value, out sourceFolder, out error))
+            {
+                parsed = null;
+                return false;
+            }
+        }
         else if (option.Equals("--limit", StringComparison.OrdinalIgnoreCase))
         {
             if (!int.TryParse(value, out limit) || limit < 1)
@@ -813,7 +847,21 @@ static bool TryParseListArguments(
         }
     }
 
-    parsed = new ListArguments(deviceIndex, limit, showId, extensionFilter);
+    parsed = new ListArguments(deviceIndex, limit, showId, extensionFilter, sourceFolder ?? []);
+    error = null;
+    return true;
+}
+
+static bool TryParseSourceFolder(string value, out string[]? path, out string? error)
+{
+    path = value.Split(['/', '\\']);
+    if (path.Any(segment => string.IsNullOrWhiteSpace(segment) || segment is "." or ".."))
+    {
+        path = null;
+        error = "--source-folder requires a device-relative folder path without empty, '.' or '..' segments.";
+        return false;
+    }
+
     error = null;
     return true;
 }
@@ -1251,7 +1299,8 @@ internal sealed record ListArguments(
     int? DeviceIndex,
     int Limit,
     bool ShowId,
-    MediaExtensionSelectionRule? ExtensionFilter);
+    MediaExtensionSelectionRule? ExtensionFilter,
+    IReadOnlyList<string> SourceFolder);
 
 internal sealed record ImportOneArguments(
     int DeviceIndex,
@@ -1265,7 +1314,8 @@ internal sealed record ImportArguments(
     string TargetTemplate,
     ExistingFilePolicy ExistingFilePolicy,
     LocalCaptureDateRange CaptureDateRange,
-    MediaExtensionSelectionRule? ExtensionFilter);
+    MediaExtensionSelectionRule? ExtensionFilter,
+    IReadOnlyList<string> SourceFolder);
 
 internal sealed class SynchronousProgress<T>(Action<T> report) : IProgress<T>
 {

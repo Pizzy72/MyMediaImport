@@ -7,6 +7,40 @@ namespace MyMediaImport.Cli.Tests;
 public sealed class CliParserIntegrationTests
 {
     [TestMethod]
+    [DataRow("list", "Internal Storage//Camera")]
+    [DataRow("import", "../Camera")]
+    [DataRow("list", "/DCIM")]
+    [DataRow("import", "DCIM/")]
+    public async Task SourceFolder_RejectsInvalidSegments(string command, string path)
+    {
+        CliProcessResult result = await RunCliAsync([command, "--source-folder", path]);
+        Assert.AreEqual(2, result.ExitCode);
+        StringAssert.Contains(result.StandardError, "--source-folder requires");
+    }
+
+    [TestMethod]
+    [DataRow("list")]
+    [DataRow("import")]
+    public async Task SourceFolder_RejectsDuplicates(string command)
+    {
+        CliProcessResult result = await RunCliAsync(
+            [command, "--source-folder", "Internal Storage/DCIM", "--source-folder", "Other"]);
+        Assert.AreEqual(2, result.ExitCode);
+        StringAssert.Contains(result.StandardError, "--source-folder may only be specified once.");
+    }
+
+    [TestMethod]
+    [DataRow("list", "Internal Storage/DCIM/Camera")]
+    [DataRow("import", @"Internal Storage\DCIM\Camera")]
+    public async Task SourceFolder_AcceptsPathBeforeValidatingNextOption(string command, string path)
+    {
+        CliProcessResult result = await RunCliAsync(
+            [command, "--source-folder", path, "--invalid", "value"]);
+        Assert.AreEqual(2, result.ExitCode);
+        StringAssert.Contains(result.StandardError, $"Unknown {command} option");
+    }
+
+    [TestMethod]
     public async Task Help_SeparatesGeneralPracticalAndFormalViews()
     {
         CliProcessResult general = await RunCliAsync(["help"]);

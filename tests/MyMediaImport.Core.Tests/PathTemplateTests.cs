@@ -15,6 +15,7 @@ public sealed class PathTemplateTests
             {
                 "{capture:FORMAT}",
                 "{captureUtc:FORMAT}",
+                "{captureOffset}",
                 "{original}",
                 "{ext}",
                 "{collision:FORMAT}"
@@ -22,7 +23,8 @@ public sealed class PathTemplateTests
             syntax);
         Assert.AreEqual("{capture:yyyy-MM-dd_HHmmss}", PathTemplate.SupportedPlaceholders[0].Example);
         Assert.AreEqual("{captureUtc:yyyy-MM-dd_HHmmss'Z'}", PathTemplate.SupportedPlaceholders[1].Example);
-        Assert.AreEqual("{collision:_00}", PathTemplate.SupportedPlaceholders[4].Example);
+        Assert.AreEqual("{captureOffset}", PathTemplate.SupportedPlaceholders[2].Example);
+        Assert.AreEqual("{collision:_00}", PathTemplate.SupportedPlaceholders[5].Example);
     }
 
     private static readonly DateTimeOffset CaptureTime =
@@ -58,6 +60,34 @@ public sealed class PathTemplateTests
 
         Assert.AreEqual(template.Render(plusTwo), template.Render(minusFive));
         Assert.AreEqual("2026-08-22_173023", template.Render(plusTwo));
+    }
+
+    [TestMethod]
+    [DataRow(2, 0, "+0200")]
+    [DataRow(-5, -30, "-0530")]
+    [DataRow(5, 45, "+0545")]
+    [DataRow(0, 0, "+0000")]
+    public void Render_FormatsResolvedOffsetWithoutInvalidFilenameCharacters(
+        int hours,
+        int minutes,
+        string expected)
+    {
+        TimeSpan offset = new(hours, minutes, 0);
+        MediaItem item = CreateItem(CaptureTimestamp.FromKnownTime(
+            new DateTimeOffset(2026, 8, 22, 17, 30, 23, offset)));
+        PathTemplate template = new("{capture:yyyy-MM-dd_HHmmss}{captureOffset}.{ext}");
+
+        Assert.AreEqual($"2026-08-22_173023{expected}.heic", template.Render(item));
+    }
+
+    [TestMethod]
+    public void Render_RequiresResolvedOffsetForOffsetPlaceholder()
+    {
+        MediaItem item = CreateItem(CaptureTimestamp.FromLocalTime(
+            new DateTime(2026, 8, 22, 17, 30, 23)));
+
+        Assert.ThrowsExactly<UnresolvedCaptureTimeException>(
+            () => new PathTemplate("{captureOffset}").Render(item));
     }
 
     [TestMethod]

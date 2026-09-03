@@ -7,6 +7,48 @@ public sealed class MediaImporterTests
     private static readonly byte[] SourceBytes = [1, 2, 3, 4, 5];
 
     [TestMethod]
+    [DataRow(2)]
+    [DataRow(-5)]
+    public async Task ImportAsync_UsesResolvedCaptureTimeForCreationTime(int offsetHours)
+    {
+        MemoryImportFileSystem fileSystem = new();
+        TestMediaSource source = new(() => new MemoryStream(SourceBytes));
+        MediaImporter importer = new(fileSystem);
+        ImportRequest request = CreateRequest(ExistingFilePolicy.Skip);
+        CaptureTimeZoneResolver resolver = new();
+        CaptureTimestamp captureTime = resolver.Resolve(
+            request.MediaItem.CaptureTime!,
+            CaptureTimeZoneSpec.FromFixedOffset(TimeSpan.FromHours(offsetHours)));
+        request = request with { MediaItem = request.MediaItem.WithCaptureTime(captureTime) };
+
+        ImportResult result = await importer.ImportAsync(source, request, TestContext.CancellationToken);
+
+        Assert.AreEqual(ImportResultStatus.Succeeded, result.Status);
+        Assert.AreEqual(captureTime.ResolvedTime, fileSystem.PublishedCreationTime);
+        CollectionAssert.AreEqual(SourceBytes, fileSystem.Files[TargetPath]);
+    }
+
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task ImportAsync_WithoutResolvedCaptureTime_DoesNotInventCreationTime(bool missing)
+    {
+        MemoryImportFileSystem fileSystem = new();
+        TestMediaSource source = new(() => new MemoryStream(SourceBytes));
+        MediaImporter importer = new(fileSystem);
+        ImportRequest request = CreateRequest(ExistingFilePolicy.Skip);
+        if (missing)
+        {
+            request = request with { MediaItem = request.MediaItem.WithCaptureTime(null) };
+        }
+
+        ImportResult result = await importer.ImportAsync(source, request, TestContext.CancellationToken);
+
+        Assert.AreEqual(ImportResultStatus.Succeeded, result.Status);
+        Assert.IsNull(fileSystem.PublishedCreationTime);
+    }
+
+    [TestMethod]
     public async Task ImportAsync_TransfersAndPublishesFile()
     {
         MemoryImportFileSystem fileSystem = new();
@@ -271,6 +313,8 @@ public sealed class MediaImporterTests
     private sealed class MemoryImportFileSystem(params (string Path, byte[] Content)[] files)
         : IImportFileSystem
     {
+        internal DateTimeOffset? PublishedCreationTime { get; private set; }
+
         internal Dictionary<string, byte[]> Files { get; } =
             files.ToDictionary(file => file.Path, file => file.Content, StringComparer.OrdinalIgnoreCase);
 
@@ -314,6 +358,7 @@ public sealed class MediaImporterTests
             string partialPath,
             string targetPath,
             bool overwrite,
+            DateTimeOffset? creationTime,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -323,6 +368,7 @@ public sealed class MediaImporterTests
             }
 
             Files[targetPath] = Files[partialPath];
+            PublishedCreationTime = creationTime;
             Files.Remove(partialPath);
             return ValueTask.CompletedTask;
         }

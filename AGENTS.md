@@ -234,6 +234,7 @@ Initial placeholders include:
 
     {capture:...}
     {captureUtc:...}
+    {captureOffset}
     {original}
     {ext}
     {collision:...}
@@ -241,6 +242,9 @@ Initial placeholders include:
 capture represents local capture time.
 
 captureUtc represents UTC capture time.
+
+captureOffset represents the resolved UTC offset without a colon, for example
++0200 or -0530, so it can be used in a Windows filename.
 
 A literal Z in a generated filename must only be used for an actual UTC
 timestamp.
@@ -684,6 +688,22 @@ Keep the solution buildable both from Visual Studio and with:
 
     dotnet build
 
+## Changelog
+
+Update `CHANGELOG.md` for every user-visible change.
+
+Classify entries according to Keep a Changelog:
+
+- use `Added` for new features
+- use `Changed` for changes to existing behavior
+- use `Fixed` for bug fixes
+
+Do not add entries for refactoring, tests, documentation corrections, or
+internal maintenance that has no user-visible effect.
+
+Add new entries under `Unreleased` unless the user explicitly assigns the
+change to a specific version.
+
 ## C# coding conventions
 
 Use the following naming and member-access conventions consistently.
@@ -753,7 +773,11 @@ After completing a coherent development step:
 
 - run the relevant build and tests
 - review git status
-- stage only changes related to the current task
+- leave the changes uncommitted so the user can review them manually
+- ask the user to review the completed changes before every commit
+- do not stage or commit changes until the user has completed the manual
+  review and explicitly requested the commit
+- after that explicit request, stage only changes related to the current task
 - create one focused commit
 - use a short, descriptive commit message in imperative form
 - do not combine unrelated changes in one commit

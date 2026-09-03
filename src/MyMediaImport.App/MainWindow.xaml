@@ -69,6 +69,7 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <ComboBox ItemsSource="{Binding Devices}"
                                       SelectedItem="{Binding SelectedDevice}"
@@ -83,6 +84,19 @@
                                        Text="{Binding DeviceStatus}"
                                        Style="{StaticResource MutedTextStyle}"
                                        Margin="0,6,0,0" />
+                            <DockPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="0,8,0,0">
+                                <Button DockPanel.Dock="Right"
+                                        Content="Choose folder..."
+                                        IsEnabled="{Binding CanChooseSourceFolder}"
+                                        Margin="8,0,0,0"
+                                        Click="ChooseSourceFolder_OnClick"
+                                        AutomationProperties.AutomationId="ChooseSourceFolderButton" />
+                                <TextBlock Text="{Binding SourceFolderText}"
+                                           ToolTip="{Binding SourceFolderText}"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"
+                                           AutomationProperties.AutomationId="SourceFolderPath" />
+                            </DockPanel>
                         </Grid>
                     </GroupBox>
 
@@ -219,6 +233,9 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="{Binding PreviewStatus}"
                                        Style="{StaticResource MutedTextStyle}"
+                                       TextWrapping="NoWrap"
+                                       TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding PreviewStatusToolTip}"
                                        AutomationProperties.AutomationId="PreviewStatus"
                                        VerticalAlignment="Center" />
                             <ProgressBar Grid.Column="1"
@@ -251,6 +268,8 @@
 
                         <ListBox Grid.Row="1"
                                  ItemsSource="{Binding PreviewItems}"
+                                 BorderBrush="{DynamicResource BorderBrush}"
+                                 FocusVisualStyle="{x:Null}"
                                  SelectionMode="Multiple"
                                  IsEnabled="{Binding IsImportInteractionEnabled}"
                                  Visibility="{Binding HasPreviewItems, Converter={StaticResource BooleanToVisibilityConverter}}"
@@ -306,7 +325,7 @@
                                             <TextBlock Text="{Binding Name}"
                                                        FontWeight="SemiBold"
                                                        TextTrimming="CharacterEllipsis"
-                                                       ToolTip="{Binding Name}" />
+                                                       ToolTip="{Binding NameToolTip}" />
                                             <TextBlock Text="{Binding CaptureTimeText}"
                                                        Style="{StaticResource MutedTextStyle}"
                                                        Margin="0,4,0,0" />
@@ -604,6 +623,8 @@
                             </Border>
 
                             <ListBox ItemsSource="{Binding TargetPathItems}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     FocusVisualStyle="{x:Null}"
                                      ItemContainerStyle="{StaticResource MediaPreviewItemContainerStyle}"
                                      Visibility="{Binding HasTargetPathItems, Converter={StaticResource BooleanToVisibilityConverter}}"
                                      AutomationProperties.AutomationId="TargetPathList"
@@ -638,7 +659,17 @@
                                                        TextWrapping="NoWrap"
                                                        TextTrimming="CharacterEllipsis"
                                                        ToolTip="{Binding TargetPath}"
-                                                       Margin="18,0,10,0" />
+                                                       Margin="18,0,10,0">
+                                                <TextBlock.ContextMenu>
+                                                    <ContextMenu Style="{StaticResource ThemedContextMenuStyle}">
+                                                        <MenuItem Header="Show in File Explorer"
+                                                                  Style="{StaticResource ThemedMenuItemStyle}"
+                                                                  Click="ShowTargetFileInExplorer_OnClick"
+                                                                  Tag="{Binding PlacementTarget.DataContext.TargetPath, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                  IsEnabled="{Binding PlacementTarget.DataContext.CanRevealInExplorer, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                                    </ContextMenu>
+                                                </TextBlock.ContextMenu>
+                                            </TextBlock>
                                             <Border Grid.Column="2"
                                                     Background="{DynamicResource SelectionBrush}"
                                                     CornerRadius="3"

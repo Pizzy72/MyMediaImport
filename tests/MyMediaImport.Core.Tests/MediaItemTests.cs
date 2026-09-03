@@ -4,6 +4,16 @@ namespace MyMediaImport.Core.Tests;
 public sealed class MediaItemTests
 {
     [TestMethod]
+    public void WithCaptureTime_PreservesSourcePath()
+    {
+        const string path = "Internal Storage / DCIM / Camera / photo.jpg";
+        MediaItem item = new("id", "photo.jpg", 42, null, MediaKind.Photo, "image/jpeg", path);
+        MediaItem resolved = item.WithCaptureTime(CaptureTimestamp.FromKnownTime(DateTimeOffset.UtcNow));
+        Assert.AreEqual(path, resolved.SourcePath);
+        Assert.AreEqual(item.Id, resolved.Id);
+    }
+
+    [TestMethod]
     public void Constructor_PreservesDomainValues()
     {
         DateTimeOffset captureTime = new(
@@ -19,6 +29,7 @@ public sealed class MediaItemTests
         Assert.AreEqual(captureTime, item.CaptureTime!.ResolvedTime);
         Assert.AreEqual(MediaKind.Photo, item.MediaKind);
         Assert.AreEqual("image/heic", item.MimeType);
+        Assert.IsNull(item.SourcePath);
     }
 
     [TestMethod]

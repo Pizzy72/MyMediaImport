@@ -5,6 +5,13 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
+[xml] $buildProperties = Get-Content -LiteralPath (Join-Path $repositoryRoot "Directory.Build.props") -Raw
+[string] $version = $buildProperties.Project.PropertyGroup.Version
+
+if ([string]::IsNullOrWhiteSpace($version)) {
+    throw "Directory.Build.props must define a Version for the publish archive."
+}
+
 $publishRoot = [System.IO.Path]::GetFullPath(
     (Join-Path $repositoryRoot "artifacts\publish"))
 $publishDirectories = @(
@@ -46,8 +53,8 @@ try {
     Invoke-Publish "src\MyMediaImport.App\MyMediaImport.App.csproj"
     Invoke-Publish "src\MyMediaImport.Cli\MyMediaImport.Cli.csproj"
 
-    $archivePath = Join-Path $publishRoot "MyMediaImport.zip"
-    $temporaryArchivePath = Join-Path $publishRoot "MyMediaImport.partial.zip"
+    $archivePath = Join-Path $publishRoot "MyMediaImport-$version.zip"
+    $temporaryArchivePath = Join-Path $publishRoot "MyMediaImport-$version.partial.zip"
 
     try {
         if (Test-Path -LiteralPath $temporaryArchivePath) {
@@ -75,4 +82,4 @@ Write-Host ""
 Write-Host "Publish completed:"
 Write-Host "  $publishRoot\app\MyMediaImport.App.exe"
 Write-Host "  $publishRoot\cli\MyMediaImport.Cli.exe"
-Write-Host "  $publishRoot\MyMediaImport.zip"
+Write-Host "  $archivePath"
