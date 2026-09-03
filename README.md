@@ -58,6 +58,7 @@ before deleting anything from the source device.
 - Explicit handling of unknown capture time zones
 - Collision handling with skip, rename, and overwrite policies
 - Safe imports through temporary partial files before publishing final files
+- Imported files receive the resolved capture timestamp as their file-system creation time, using the same capture timezone interpretation as target filenames. Embedded metadata (including EXIF) and last-write timestamps are not adjusted. Without a resolved capture timestamp, the creation time is left unchanged. Skipped or already imported files are not modified.
 - Self-contained Windows publishing for both the desktop application and CLI
 
 ## Choose a source folder

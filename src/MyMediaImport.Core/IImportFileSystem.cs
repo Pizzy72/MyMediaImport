@@ -10,9 +10,14 @@ public interface IImportFileSystem : ITargetFileContent
         string path,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Publishes the completed file and sets its creation time when supplied.
+    /// A null creation time leaves the file-system timestamp unchanged.
+    /// </summary>
     ValueTask PublishAsync(
         string partialPath,
         string targetPath,
         bool overwrite,
+        DateTimeOffset? creationTime,
         CancellationToken cancellationToken = default);
 }

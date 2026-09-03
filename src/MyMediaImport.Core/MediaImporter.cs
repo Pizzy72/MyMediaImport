@@ -131,6 +131,7 @@ public sealed class MediaImporter
                 partialPath,
                 targetPath,
                 request.ExistingFilePolicy == ExistingFilePolicy.Overwrite,
+                request.MediaItem.CaptureTime?.ResolvedTime,
                 cancellationToken);
 
             return new ImportResult(

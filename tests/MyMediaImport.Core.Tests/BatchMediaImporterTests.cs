@@ -181,6 +181,7 @@ public sealed class BatchMediaImporterTests
             string partialPath,
             string targetPath,
             bool overwrite,
+            DateTimeOffset? creationTime,
             CancellationToken cancellationToken = default)
         {
             _files[targetPath] = _files[partialPath];
