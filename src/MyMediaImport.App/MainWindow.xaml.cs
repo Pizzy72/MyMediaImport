@@ -1,6 +1,7 @@
 using MyMediaImport.Core;
 using MyMediaImport.Windows;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 
@@ -124,6 +125,46 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog() == true)
         {
             _viewModel.SelectSourceFolder(dialog.SelectedPath);
+        }
+    }
+
+    private void ShowTargetFileInExplorer_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string targetPath })
+        {
+            return;
+        }
+
+        if (!File.Exists(targetPath))
+        {
+            System.Windows.MessageBox.Show(
+                this,
+                "The target file no longer exists.",
+                "Show target file",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        ProcessStartInfo startInfo = new("explorer.exe")
+        {
+            UseShellExecute = true
+        };
+        startInfo.ArgumentList.Add("/select,");
+        startInfo.ArgumentList.Add(targetPath);
+        try
+        {
+            Process.Start(startInfo);
+        }
+        catch (Exception exception) when (
+            exception is Win32Exception or InvalidOperationException)
+        {
+            System.Windows.MessageBox.Show(
+                this,
+                $"The target file could not be shown: {exception.Message}",
+                "Show target file",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
     }
 }

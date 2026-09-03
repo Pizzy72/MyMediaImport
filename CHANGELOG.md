@@ -7,6 +7,22 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- The target path preview now keeps showing the actual result paths after an
+  import, including final collision-renamed paths, until the user changes the
+  selection or loads a new preview. Starting a new selection immediately clears
+  all paths from the previous import before calculating the new preview. A
+  target file can be selected in File Explorer from the path's context menu.
+
+### Fixed
+
+- The target path context menu now follows the active light or dark theme, and
+  selected path borders retain the same crisp thickness while the menu is open.
+- The large media and target path preview borders no longer turn blue as focus
+  moves between the lists; focus and selection remain visible on individual
+  rows and controls.
+
 ## [1.2.0] - 2026-09-03
 
 ### Added

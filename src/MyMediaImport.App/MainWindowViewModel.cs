@@ -42,6 +42,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private bool _isImportSuccessful;
     private bool _isImportCancelled;
     private bool _isImportFailed;
+    private bool _isShowingImportResultPaths;
     private bool _settingsValid;
     private bool _suppressSelectionUpdates;
     private int _targetPlanErrorCount;
@@ -602,7 +603,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public bool HasTargetPathItems => TargetPathItems.Count > 0;
 
-    public int TargetSelectedCount => PreviewItems.Count(item => item.IsSelected);
+    public int TargetSelectedCount => TargetPathItems.Count > 0
+        ? TargetPathItems.Count
+        : PreviewItems.Count(item => item.IsSelected);
 
     public int TargetReadyCount => TargetPathItems.Count(item => item.IsImportReady);
 
@@ -616,13 +619,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     {
         get
         {
-            MediaPreviewItemViewModel[] selectedItems = PreviewItems
-                .Where(item => item.IsSelected)
-                .ToArray();
-            long knownSize = selectedItems
-                .Where(item => item.SourceMediaItem.Size.HasValue)
-                .Sum(item => item.SourceMediaItem.Size!.Value);
-            int unknownSizeCount = selectedItems.Count(item => !item.SourceMediaItem.Size.HasValue);
+            long?[] sizes = TargetPathItems.Count > 0
+                ? TargetPathItems.Select(item => item.ExpectedSize).ToArray()
+                : PreviewItems
+                    .Where(item => item.IsSelected)
+                    .Select(item => item.SourceMediaItem.Size)
+                    .ToArray();
+            long knownSize = sizes.Where(size => size.HasValue).Sum(size => size!.Value);
+            int unknownSizeCount = sizes.Count(size => !size.HasValue);
             string knownText = FormatByteSize(knownSize);
             return unknownSizeCount == 0
                 ? knownText
@@ -888,6 +892,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
             ApplyImportResults(importPlan, result.Results);
             DeselectProcessedItems(result.Results);
+            ShowImportResultPaths(result.Results);
             bool wasCancelled = result.Results.Any(
                 item => item.Status == ImportResultStatus.Cancelled);
             IsImportSuccessful = !wasCancelled && ImportFailedCount == 0;
@@ -1103,7 +1108,27 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             _suppressSelectionUpdates = false;
         }
 
-        OnSelectionChanged();
+        CurrentImportPlan = null;
+        OnPropertyChanged(nameof(SelectedSummary));
+        OnPropertyChanged(nameof(TargetSelectedCount));
+        OnPropertyChanged(nameof(TargetTotalSizeText));
+        _selectNoneCommand.RaiseCanExecuteChanged();
+        _importSelectedCommand.RaiseCanExecuteChanged();
+    }
+
+    private void ShowImportResultPaths(IReadOnlyList<ImportResult> results)
+    {
+        _targetPathPlanCancellation?.Cancel();
+        _targetPathPlanCancellation = null;
+        IsPlanningTargetPaths = false;
+        SetTargetPlanErrorCount(0);
+        _isShowingImportResultPaths = true;
+        TargetPathItems = results
+            .Select(result => new TargetPathPreviewItemViewModel(result))
+            .ToArray();
+        TargetPathStatus = results.Count == 1
+            ? "Resulting path from the last import."
+            : $"Resulting paths from the last import ({results.Count} files).";
     }
 
     private void AddImportResultToSummary(ImportResult result)
@@ -1311,6 +1336,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         CancellationTokenSource? previousRequest = _targetPathPlanCancellation;
         _targetPathPlanCancellation = null;
         previousRequest?.Cancel();
+        _isShowingImportResultPaths = false;
 
         int selectedCount = PreviewItems.Count(item => item.IsSelected);
         if (selectedCount == 0 || _previewMediaSource is null)
@@ -1417,6 +1443,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         request?.Cancel();
         IsPlanningTargetPaths = false;
         CurrentImportPlan = null;
+        _isShowingImportResultPaths = false;
         SetTargetPlanErrorCount(0);
         TargetPathItems = Array.Empty<TargetPathPreviewItemViewModel>();
         TargetPathStatus = status;
@@ -1490,6 +1517,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         if (!IsImporting)
         {
             ClearImportStatus();
+            if (_isShowingImportResultPaths)
+            {
+                ClearTargetPathPreview("Updating target paths for the new selection...");
+            }
         }
 
         OnPropertyChanged(nameof(SelectedSummary));

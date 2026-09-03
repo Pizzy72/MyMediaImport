@@ -268,6 +268,8 @@
 
                         <ListBox Grid.Row="1"
                                  ItemsSource="{Binding PreviewItems}"
+                                 BorderBrush="{DynamicResource BorderBrush}"
+                                 FocusVisualStyle="{x:Null}"
                                  SelectionMode="Multiple"
                                  IsEnabled="{Binding IsImportInteractionEnabled}"
                                  Visibility="{Binding HasPreviewItems, Converter={StaticResource BooleanToVisibilityConverter}}"
@@ -621,6 +623,8 @@
                             </Border>
 
                             <ListBox ItemsSource="{Binding TargetPathItems}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     FocusVisualStyle="{x:Null}"
                                      ItemContainerStyle="{StaticResource MediaPreviewItemContainerStyle}"
                                      Visibility="{Binding HasTargetPathItems, Converter={StaticResource BooleanToVisibilityConverter}}"
                                      AutomationProperties.AutomationId="TargetPathList"
@@ -655,7 +659,17 @@
                                                        TextWrapping="NoWrap"
                                                        TextTrimming="CharacterEllipsis"
                                                        ToolTip="{Binding TargetPath}"
-                                                       Margin="18,0,10,0" />
+                                                       Margin="18,0,10,0">
+                                                <TextBlock.ContextMenu>
+                                                    <ContextMenu Style="{StaticResource ThemedContextMenuStyle}">
+                                                        <MenuItem Header="Show in File Explorer"
+                                                                  Style="{StaticResource ThemedMenuItemStyle}"
+                                                                  Click="ShowTargetFileInExplorer_OnClick"
+                                                                  Tag="{Binding PlacementTarget.DataContext.TargetPath, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                  IsEnabled="{Binding PlacementTarget.DataContext.CanRevealInExplorer, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                                    </ContextMenu>
+                                                </TextBlock.ContextMenu>
+                                            </TextBlock>
                                             <Border Grid.Column="2"
                                                     Background="{DynamicResource SelectionBrush}"
                                                     CornerRadius="3"
