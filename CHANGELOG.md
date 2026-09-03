@@ -5,24 +5,6 @@ All notable changes to MyMediaImport will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
-
-### Changed
-
-- The target path preview now keeps showing the actual result paths after an
-  import, including final collision-renamed paths, until the user changes the
-  selection or loads a new preview. Starting a new selection immediately clears
-  all paths from the previous import before calculating the new preview. A
-  target file can be selected in File Explorer from the path's context menu.
-
-### Fixed
-
-- The target path context menu now follows the active light or dark theme, and
-  selected path borders retain the same crisp thickness while the menu is open.
-- The large media and target path preview borders no longer turn blue as focus
-  moves between the lists; focus and selection remain visible on individual
-  rows and controls.
-
 ## [1.2.0] - 2026-09-03
 
 ### Added
@@ -36,9 +18,6 @@ and this project uses [Semantic Versioning](https://semver.org/).
   count, with the full path and preview details available in a tooltip.
 - Filename tooltips show each media item's full device path, including nested
   folders, without increasing preview row heights.
-
-### Added
-
 - The `{captureOffset}` target path placeholder writes the resolved capture
   timezone offset without a colon, for example `+0200` or `-0530`, so it can be
   used safely in Windows filenames. It is available in the desktop template
@@ -50,6 +29,19 @@ and this project uses [Semantic Versioning](https://semver.org/).
   file-system creation time, using the same capture timezone interpretation as
   target filenames. Embedded metadata such as EXIF and the last-write timestamp
   remain unchanged; skipped or already imported files are not modified.
+- The target path preview now keeps showing the actual result paths after an
+  import, including final collision-renamed paths, until the user changes the
+  selection or loads a new preview. Starting a new selection immediately clears
+  all paths from the previous import before calculating the new preview. A
+  target file can be selected in File Explorer from the path's context menu.
+
+### Fixed
+
+- The target path context menu now follows the active light or dark theme, and
+  selected path borders retain the same crisp thickness while the menu is open.
+- The large media and target path preview borders no longer turn blue as focus
+  moves between the lists; focus and selection remain visible on individual
+  rows and controls.
 
 ## [1.1.0] - 2026-09-01
 
