@@ -7,7 +7,7 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [1.2.0] - 2026-09-02
+## [1.2.0] - 2026-09-03
 
 ### Added
 
@@ -20,6 +20,13 @@ and this project uses [Semantic Versioning](https://semver.org/).
   count, with the full path and preview details available in a tooltip.
 - Filename tooltips show each media item's full device path, including nested
   folders, without increasing preview row heights.
+
+### Changed
+
+- Imported files now receive the resolved capture timestamp as their Windows
+  file-system creation time, using the same capture timezone interpretation as
+  target filenames. Embedded metadata such as EXIF and the last-write timestamp
+  remain unchanged; skipped or already imported files are not modified.
 
 ## [1.1.0] - 2026-09-01
 

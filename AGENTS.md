@@ -753,7 +753,11 @@ After completing a coherent development step:
 
 - run the relevant build and tests
 - review git status
-- stage only changes related to the current task
+- leave the changes uncommitted so the user can review them manually
+- ask the user to review the completed changes before every commit
+- do not stage or commit changes until the user has completed the manual
+  review and explicitly requested the commit
+- after that explicit request, stage only changes related to the current task
 - create one focused commit
 - use a short, descriptive commit message in imperative form
 - do not combine unrelated changes in one commit
