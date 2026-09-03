@@ -21,6 +21,13 @@ and this project uses [Semantic Versioning](https://semver.org/).
 - Filename tooltips show each media item's full device path, including nested
   folders, without increasing preview row heights.
 
+### Added
+
+- The `{captureOffset}` target path placeholder writes the resolved capture
+  timezone offset without a colon, for example `+0200` or `-0530`, so it can be
+  used safely in Windows filenames. It is available in the desktop template
+  help and CLI import help.
+
 ### Changed
 
 - Imported files now receive the resolved capture timestamp as their Windows

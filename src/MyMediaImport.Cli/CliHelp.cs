@@ -221,11 +221,13 @@ public static class CliHelp
         TARGET template:
           {capture:FORMAT}      Local capture time.
           {captureUtc:FORMAT}   Capture time converted to UTC.
+          {captureOffset}       Resolved UTC offset as +HHmm or -HHmm.
           {original}            Original filename without extension.
           {ext}                 Normalized lowercase extension without dot.
           {collision:FORMAT}    Empty, then suffixes such as _02 and _03.
 
           FORMAT uses standard .NET custom date and time formats.
+          captureOffset omits the colon so the result is valid in filenames.
 
         Examples:
           MyMediaImport.Cli.exe import --device-index 1 --today ^
@@ -237,7 +239,7 @@ public static class CliHelp
               --extension JPG,HEIC,MOV ^
               --timezone +02:00 ^
               --rename-existing ^
-              --target "E:\Bilder\{captureUtc:yyyy}\{captureUtc:yyyyMMdd_HHmmss'Z'}{collision:_00}.{ext}"
+              --target "E:\Bilder\{capture:yyyy}\{capture:yyyyMMdd_HHmmss}{captureOffset}{collision:_00}.{ext}"
 
         """);
 

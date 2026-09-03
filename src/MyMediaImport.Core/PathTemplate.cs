@@ -8,6 +8,7 @@ public sealed class PathTemplate
 {
     private const string CaptureName = "capture";
     private const string CaptureUtcName = "captureUtc";
+    private const string CaptureOffsetName = "captureOffset";
     private const string OriginalName = "original";
     private const string ExtensionName = "ext";
     private const string CollisionName = "collision";
@@ -17,6 +18,7 @@ public sealed class PathTemplate
         [
             new($"{{{CaptureName}:FORMAT}}", "Local capture time.", $"{{{CaptureName}:yyyy-MM-dd_HHmmss}}"),
             new($"{{{CaptureUtcName}:FORMAT}}", "Capture time converted to UTC.", $"{{{CaptureUtcName}:yyyy-MM-dd_HHmmss'Z'}}"),
+            new($"{{{CaptureOffsetName}}}", "Resolved UTC offset without a colon.", $"{{{CaptureOffsetName}}}"),
             new($"{{{OriginalName}}}", "Original filename without extension.", null),
             new($"{{{ExtensionName}}}", "Normalized lowercase extension without leading dot.", null),
             new($"{{{CollisionName}:FORMAT}}", "Empty for the first filename, then suffixes such as _02, _03.", $"{{{CollisionName}:_00}}")
@@ -80,6 +82,14 @@ public sealed class PathTemplate
             return Path.GetExtension(mediaItem.Name)
                 .TrimStart('.')
                 .ToLowerInvariant();
+        }
+
+        if (placeholder == CaptureOffsetName)
+        {
+            TimeSpan offset = RequireResolvedCaptureTime(mediaItem).Offset;
+            char sign = offset < TimeSpan.Zero ? '-' : '+';
+            TimeSpan absoluteOffset = offset.Duration();
+            return $"{sign}{(int)absoluteOffset.TotalHours:00}{absoluteOffset.Minutes:00}";
         }
 
         if (placeholder.StartsWith($"{CaptureUtcName}:", StringComparison.Ordinal))

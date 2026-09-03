@@ -54,7 +54,8 @@ before deleting anything from the source device.
 - Choose a source folder with recursive scanning and per-device remembered selections
 - Inspect each file's device path in the filename tooltip without enlarging preview rows
 - Preview generated target paths before importing
-- Configurable path templates using local or UTC capture timestamps
+- Configurable path templates using local or UTC capture timestamps and
+  filename-safe UTC offsets such as `+0200`
 - Explicit handling of unknown capture time zones
 - Collision handling with skip, rename, and overwrite policies
 - Safe imports through temporary partial files before publishing final files

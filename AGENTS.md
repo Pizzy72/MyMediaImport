@@ -234,6 +234,7 @@ Initial placeholders include:
 
     {capture:...}
     {captureUtc:...}
+    {captureOffset}
     {original}
     {ext}
     {collision:...}
@@ -241,6 +242,9 @@ Initial placeholders include:
 capture represents local capture time.
 
 captureUtc represents UTC capture time.
+
+captureOffset represents the resolved UTC offset without a colon, for example
++0200 or -0530, so it can be used in a Windows filename.
 
 A literal Z in a generated filename must only be used for an actual UTC
 timestamp.
@@ -683,6 +687,22 @@ Do not require Visual Studio preview features unless explicitly requested.
 Keep the solution buildable both from Visual Studio and with:
 
     dotnet build
+
+## Changelog
+
+Update `CHANGELOG.md` for every user-visible change.
+
+Classify entries according to Keep a Changelog:
+
+- use `Added` for new features
+- use `Changed` for changes to existing behavior
+- use `Fixed` for bug fixes
+
+Do not add entries for refactoring, tests, documentation corrections, or
+internal maintenance that has no user-visible effect.
+
+Add new entries under `Unreleased` unless the user explicitly assigns the
+change to a specific version.
 
 ## C# coding conventions
 

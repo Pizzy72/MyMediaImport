@@ -77,6 +77,7 @@ public sealed class CliHelpTests
 
         StringAssert.Contains(help, "{capture:FORMAT}");
         StringAssert.Contains(help, "{captureUtc:FORMAT}");
+        StringAssert.Contains(help, "{captureOffset}");
         StringAssert.Contains(help, "{original}");
         StringAssert.Contains(help, "{ext}");
         StringAssert.Contains(help, "{collision:FORMAT}");
