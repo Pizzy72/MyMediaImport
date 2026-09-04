@@ -133,6 +133,35 @@ tests/MyMediaImport.App.Tests   Tests for WPF presentation logic
 
 Run all commands below from the repository root.
 
+### Invoke-Build workflow
+
+Restore the repository-local Invoke-Build tool once after cloning or updating
+the tool manifest:
+
+```powershell
+dotnet tool restore
+```
+
+The common development tasks are then available through a single build script:
+
+```powershell
+dotnet ib build
+dotnet ib test
+dotnet ib run
+dotnet ib runcli -CliArguments help
+dotnet ib publish
+dotnet ib release
+```
+
+`build` is the default task, so `dotnet ib` builds the complete solution.
+`release` runs all tests and then creates the existing self-contained App and
+CLI publish outputs. The configuration defaults to `Release` and `x64`; it can
+be overridden with Invoke-Build parameters when needed, for example:
+
+```powershell
+dotnet ib build -BuildMode Debug
+```
+
 ### Restore dependencies
 
 ```powershell

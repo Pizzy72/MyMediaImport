@@ -5,6 +5,13 @@ All notable changes to MyMediaImport will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- A repository-local Invoke-Build environment for consistent build, test, run,
+  publish, and release workflows.
+
 ## [1.2.0] - 2026-09-03
 
 ### Added
