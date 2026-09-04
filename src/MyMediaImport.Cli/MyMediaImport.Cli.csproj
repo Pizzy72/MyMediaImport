@@ -12,4 +12,26 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="..\..\LICENSE" Link="LICENSE" CopyToPublishDirectory="Always" />
+    <None Include="$(NuGetPackageRoot)microsoft.netcore.app.runtime.$(RuntimeIdentifier)\$(RuntimeFrameworkVersion)\LICENSE.TXT"
+          Link="DOTNET-LICENSE.txt"
+          CopyToPublishDirectory="Always"
+          Condition="'$(SelfContained)' == 'true'" />
+    <None Include="$(NuGetPackageRoot)microsoft.netcore.app.runtime.$(RuntimeIdentifier)\$(RuntimeFrameworkVersion)\THIRD-PARTY-NOTICES.TXT"
+          Link="DOTNET-THIRD-PARTY-NOTICES.txt"
+          CopyToPublishDirectory="Always"
+          Condition="'$(SelfContained)' == 'true'" />
+  </ItemGroup>
+
+  <Target Name="ValidateReleaseNotices" BeforeTargets="Publish">
+    <Error Condition="!Exists('..\..\LICENSE')" Text="The MyMediaImport license file is missing." />
+    <Error Condition="'$(SelfContained)' == 'true' and '$(RuntimeFrameworkVersion)' == ''"
+           Text="A self-contained publish must specify RuntimeFrameworkVersion explicitly." />
+    <Error Condition="'$(SelfContained)' == 'true' and !Exists('$(NuGetPackageRoot)microsoft.netcore.app.runtime.$(RuntimeIdentifier)\$(RuntimeFrameworkVersion)\LICENSE.TXT')"
+           Text="The version-specific .NET runtime license was not found for $(RuntimeIdentifier) $(RuntimeFrameworkVersion)." />
+    <Error Condition="'$(SelfContained)' == 'true' and !Exists('$(NuGetPackageRoot)microsoft.netcore.app.runtime.$(RuntimeIdentifier)\$(RuntimeFrameworkVersion)\THIRD-PARTY-NOTICES.TXT')"
+           Text="The version-specific .NET runtime notices were not found for $(RuntimeIdentifier) $(RuntimeFrameworkVersion)." />
+  </Target>
+
 </Project>

@@ -7,10 +7,17 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-04
+
 ### Added
 
 - A repository-local Invoke-Build environment for consistent build, test, run,
-  publish, and release workflows.
+  packaging, and release workflows.
+- An Inno Setup packaging task that installs the desktop application and CLI
+  and displays the license terms for bundled Microsoft .NET components.
+- An Invoke-Build task for building and launching the installer.
+- A Start menu shortcut that opens a command prompt in the installed CLI
+  directory and displays the CLI help.
 
 ## [1.2.0] - 2026-09-03
 
@@ -97,5 +104,6 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 [1.1.0]: https://github.com/Pizzy72/MyMediaImport/compare/v1.0.0...v1.1.0
 [1.2.0]: https://github.com/Pizzy72/MyMediaImport/compare/v1.1.0...v1.2.0
-[Unreleased]: https://github.com/Pizzy72/MyMediaImport/compare/v1.2.0...HEAD
+[1.3.0]: https://github.com/Pizzy72/MyMediaImport/compare/v1.2.0...v1.3.0
+[Unreleased]: https://github.com/Pizzy72/MyMediaImport/compare/v1.3.0...HEAD
 [1.0.0]: https://github.com/Pizzy72/MyMediaImport/releases/tag/v1.0.0
