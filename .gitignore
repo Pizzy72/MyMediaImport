@@ -33,6 +33,7 @@ packages/
 
 # Publish output
 [Pp]ublish/
+[Ss]etup/[Oo]utput/
 *.pubxml.user
 
 # Generated logs and temporary files
