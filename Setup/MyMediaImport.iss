@@ -35,7 +35,8 @@ AppPublisher={#MyAppPublisher}
 LicenseFile=..\artifacts\installer\DOTNET-LICENSE.txt
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
-PrivilegesRequired=admin
+; Remove the following line to run in administrative install mode (install for all users.)
+PrivilegesRequired=lowest
 OutputBaseFilename={#MyAppName}_{#MyAppVersion}
 SetupIconFile=..\src\MyMediaImport.App\Assets\MyMediaImport.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
